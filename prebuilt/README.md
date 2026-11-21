@@ -6,6 +6,7 @@ Stages are built for PC 10.0.0.71:9031; retarget: `python3 tools/diag_recv.py pa
 |---|---|---|
 | `hw-verified/` | stage + UEFI that booted to the UEFI Shell on a PS4 Fat 9.00 | **hardware-verified** |
 | `io-build/` | same stage + UEFI with USB/SATA/SD/UART/DS4/Ethernet | QEMU only — next hardware run |
+| (none yet) | the multi-version stage (`make stage`) has not run on hardware; the stages below predate it | — |
 | `rebuild2-current/` | stage + UEFI of this tree when it was handed over (6 GiB, NTFS, ps4log, Ps4AcpiDxe incl. untested RAM-IOAPIC ID 0) | QEMU only |
 
 ```

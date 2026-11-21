@@ -6,6 +6,7 @@
 | `tools/upl_hosttest.c` | `src/upl_load.c` against the real `out/upl-ps4.elf`: ELF parsing, relocations, FV location, HOB list |
 | `tools/memmap_hosttest.c` | `src/directboot/memmap.c` rules: VRAM carve not RAM, released high RAM, device-shared ranges, handoff reservations win, fail closed without phys_avail |
 | `tools/ds4_hosttest.c` | DualShock 4 report → key translation (`Ps4Pkg/Ps4Ds4Dxe/Ds4Report.c`) |
+| `tools/fwsel_hosttest.c` | stage version selection + prologue decoder; with `KDUMP=<9.00 kernel dump>` exactly the 9.00 row must match and decode to the 15 hardware-proven bytes |
 
 ## 2. QEMU regression gate (`make qemu` → `qemu/matrix.sh`)
 Every configuration must print `RESULT: PASS` (UEFI Shell reached, no exception/ASSERT) before any hardware run.

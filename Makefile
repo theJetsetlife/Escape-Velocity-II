@@ -2,7 +2,8 @@
 #   make setup     fetch pinned upstream edk2 + build BaseTools (once)
 #   make stage     PS4 directboot stage  -> src/directboot/directboot.bin (needs PC_IP from server/.env)
 #   make upl       EDK II Universal Payload -> out/upl-ps4.elf
-#   make hosttest  host-side unit tests (UPL loader, memory map rules, DS4 report parser)
+#   make hosttest  host-side unit tests (UPL loader, memory map rules, DS4 parser, version selection;
+#                  KDUMP=<9.00 kernel dump> adds the dump checks)
 #   make qemu      QEMU regression matrix (must all print RESULT: PASS before any PS4 run)
 #   make server    start the PC-side containers (WebKitty + receiver)
 #   make deploy    put stage into the WebKitty slot, verify both served hashes
@@ -11,7 +12,7 @@ PC_IP   ?= 192.168.1.10
 PC_PORT ?= 9031
 T := out/hosttest
 
-.PHONY: all setup stage upl hosttest qemu server deploy dsdt clean
+.PHONY: all setup stage upl hosttest qemu server deploy dsdt fwtable clean
 all: stage upl hosttest
 
 setup:
@@ -26,6 +27,9 @@ upl:
 dsdt:
 	tools/mkdsdt.sh
 
+fwtable:
+	python3 -I tools/mkfwtable.py
+
 hosttest:
 	@mkdir -p $(T)
 	cc -O1 -DUPL_HOST_TEST -I src tools/upl_hosttest.c src/upl_load.c -o $(T)/upl_hosttest
@@ -34,6 +38,8 @@ hosttest:
 	$(T)/upl_hosttest out/upl-ps4.elf | tail -1
 	$(T)/memmap_hosttest | tail -1
 	$(T)/ds4_hosttest | tail -1
+	cc -O1 -Wall -Wextra -I src -I src/directboot tools/fwsel_hosttest.c src/directboot/fwsel.c -o $(T)/fwsel_hosttest
+	$(T)/fwsel_hosttest $(KDUMP) | tail -1
 
 qemu:
 	qemu/matrix.sh

@@ -33,7 +33,8 @@ io-build (one change set), then the current tree.
 8. **Never probe GoldHEN's BinLoader port 9090** (an empty connection makes it jump into an empty buffer and kills
    it); if a payload is sent with BinLoader, send it once (`tools/diag_recv.py send`). ps4debug: send once, a
    double load freezes the console.
-9. Firmware 9.00 only: the stage checks kernel signatures and refuses anything else.
+9. The stage arms on 9.00 only. It recognises 21 more versions (5.05–14.02, community offsets) and refuses them
+   until their `phys_avail` is known: docs/FIRMWARE_VERSIONS.md.
 10. Shell gotcha (zsh): pass environment variables explicitly (`SMP=1 ./run.sh`), not via an unquoted `$var`.
 
 ## 3. Open problems, in priority order
@@ -51,7 +52,9 @@ io-build (one change set), then the current tree.
 4. **Windows USB boot** (the end goal: Windows from an external USB drive): the PS4's three xHCI controllers sit
    behind one PCI function with a Sony class code and Aeolia MSI routing; Windows' inbox driver will not bind.
    Likely route: an INF using `mf.sys` to split the function + MSI programming. Research stage.
-5. Smaller: 30 s hold in the stage (`DB_HOLD_SECONDS`) can shrink; fb-console text overlaps the Shell banner;
+5. **Other system software versions**: the stage selects per-version offsets at run time (docs/FIRMWARE_VERSIONS.md);
+   each further version needs a kernel dump to verify its row and find `phys_avail`, then a hardware run.
+6. Smaller: 30 s hold in the stage (`DB_HOLD_SECONDS`) can shrink; fb-console text overlaps the Shell banner;
    reset/power-off need ICC requests to syscon (currently the CPU is parked); NTFS is read-only.
 
 ## 4. Where things are

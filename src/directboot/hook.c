@@ -258,13 +258,13 @@ static enum mm_attr dmap_attr(void *ctx, u64 pa)
     return present == 512 ? MM_PG_WB : MM_PG_PARTIAL;
 }
 
-/* OrbisOS phys_avail (kbase+K_PHYS_AVAIL), sanity-checked; 0 pairs = no filter */
+/* OrbisOS phys_avail (kbase + g_k.phys_avail), sanity-checked; 0 pairs = no filter */
 #define PA_MAX_PAIRS 31
 static u64 pav[2 * PA_MAX_PAIRS];
 
 static u32 load_phys_avail(struct db_state *s)
 {
-    const u64 *t = (const u64 *)(s->kbase + K_PHYS_AVAIL);
+    const u64 *t = (const u64 *)(s->kbase + g_k.phys_avail);
     u32 n = 0;
     for (; n < PA_MAX_PAIRS && (t[2 * n] | t[2 * n + 1]); n++) {
         u64 a = t[2 * n], b = t[2 * n + 1];
@@ -570,8 +570,8 @@ int db_hook(u8 *icc_msg)
     if (!s->fb_base) { s->fb_base = fb0; s->fb_w = w0; s->fb_h = h0; s->fb_pitch = p0; s->fb_crtc = c0; }
     marker(s, 0, C_BLUE);
     /* no wlanbt(2): it talks ICC and could re-enter this hook on the boot CPU */
-    smp_fn_t nb = (smp_fn_t)(s->kbase + K_SMP_NOBARRIER);
-    ((smp_rdv_t)(s->kbase + K_SMP_RDV))(nb, db_gate, nb, s);
+    smp_fn_t nb = (smp_fn_t)(s->kbase + g_k.smp_nobarrier);
+    ((smp_rdv_t)(s->kbase + g_k.smp_rdv))(nb, db_gate, nb, s);
     halt_forever();
     return 0;
 }

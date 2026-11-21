@@ -1,7 +1,8 @@
 # Running on a PS4
 
 ## Requirements
-- PS4 "Fat" (CUH-1000/1100/1200 series, Aeolia southbridge) on system software **9.00** exactly.
+- PS4 "Fat" (CUH-1000/1100/1200 series, Aeolia southbridge) on system software **9.00** (the only version the stage
+  arms; others are recognised and refused — docs/FIRMWARE_VERSIONS.md).
 - A PC on the same LAN, reachable from the PS4 on the web port (default 9898) and the receiver port (9031).
 - A WebKitty checkout (https://github.com/ArabPixel/WebKitty, tested at commit `ca35118`) — used unmodified;
   only `includes/payloads/HEN/goldhen_v2.4b18.14.bin` is replaced by the stage.

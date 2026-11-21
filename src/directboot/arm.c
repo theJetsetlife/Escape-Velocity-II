@@ -2,8 +2,10 @@
  * db_arm(td, uap) with uap[1] = struct db_arm_args *.
  *
  * Mirrors ps4-linux-loader kernel_main + sys_kexec (REFERENCE_CHAIN 3-7), but in one call:
- *   1. kernel identity gates (same as diag gate 1-4) + "not already hooked"
- *   2. verify the three patch sites byte-for-byte, then patch (kmem_alloc RWX, pstate 3)
+ *   1. select the kernel-offset row for this system software (fwsel.c: exactly one row whose sites
+ *      all have the expected shapes) + DMAP proof + "not already hooked"; refuse versions whose
+ *      phys_avail is unknown (every version except the verified 9.00)
+ *   2. verify the three patch sites' instruction shapes, then patch (kmem_alloc RWX, pstate 3)
  *   3. kmem_alloc a kernel copy of this blob (code + g_db)
  *   4. kmem_alloc_contig: ELF copy, UPL region, boot block; pmap_extract -> phys
  *   5. fill g_db, copy the blob, install the jmp at icc_query_nowait -> kernel copy of db_hook
@@ -14,6 +16,12 @@
 
 struct db_state g_db __attribute__((aligned(64)));
 struct db_patch g_patch __attribute__((aligned(64)));
+struct db_kofs g_k;                              /* selected row, filled by step 0 */
+u8 g_icc_head[DB_ICC_HEAD_MAX];
+u32 g_icc_len;
+
+#define DB_KMAX 0x3000000ull   /* arithmetic bound only: fwsel.c reads text sites (< 5 MiB, present on every
+                                  version) first and data sites only for a row whose text checks passed */
 
 typedef u64 (*kmem_alloc_t)(u64 map, u64 size);
 typedef u64 (*kmem_contig_t)(u64 map, u64 size, int flags, u64 low, u64 high,
@@ -54,11 +62,9 @@ static u64 align_up(u64 v, u64 a) { return (v + a - 1) & ~(a - 1); }
  * (HW runs 19:49, 21:47, 21:53, 22:37, 23:41, 04:27 UTC died somewhere inside the monolithic
  * arm). Every operation is the one the monolithic arm used (same calls, flags, retries); only
  * the cut into steps is new. Steps run from the user mapping, as before.
- *   0 checks (read-only, incl. the full 15-byte icc_query_nowait prologue)   1 text patches
- *   2 kmem_alloc kernel copy   3 scanout geometry (DCE reads) + sizes
+ *   0 checks (read-only: version row, DMAP proof, patch-site shapes, icc_query_nowait prologue)
+ *   1 text patches   2 kmem_alloc kernel copy   3 scanout geometry (DCE reads) + sizes
  *   4-7 kmem_alloc_contig elf / region / boot / fb   8 pmap_extract + ELF copy   9 finish */
-static const u8 icc_head[K_ICC_DISPLACED] = { 0x55, 0x48,0x89,0xe5, 0x41,0x57, 0x41,0x56, 0x41,0x54,
-                                              0x53, 0x80,0x7f,0x01,0x04 };
 
 int db_arm(void *td, u64 *uap)
 {
@@ -71,33 +77,38 @@ int db_arm(void *td, u64 *uap)
     a->result = -(s64)(100 + st);                   /* stays negative if the step does not finish */
 
     if (st == 0) {
-        static const u8 sig_xfast[12] = { 0x0f,0x01,0xf8,0x65,0x48,0x89,0x24,0x25,0xa8,0x02,0x00,0x00 };
-        static const u8 sig_gadget[2] = { 0xff,0x26 };
+        static const u8 sig_xfast[8] = { 0x0f,0x01,0xf8,0x65,0x48,0x89,0x24,0x25 };   /* swapgs; mov %rsp,%gs:disp32 */
         u64 kbase = db_rdmsr(0xc0000082) - K_XFAST;
         const u8 *kb = (const u8 *)kbase;
         if ((kbase & 0x3fff) || (kbase >> 32) != 0xffffffffull) FAIL(1, "kbase not plausible");
-        if (!beq(kb + K_XFAST, sig_xfast, 12) || !beq(kb + K_GADGET, sig_gadget, 2))
-            FAIL(2, "not retail 9.00 (xfast/gadget signature)");
-        if (kb[K_ICC_NOWAIT] == 0xe9 || (kb[K_ICC_NOWAIT] == 0xff && kb[K_ICC_NOWAIT + 1] == 0x25))
-            FAIL(3, "icc_query_nowait already hooked - restart the console before arming again");
-        if (!beq(kb + K_ICC_NOWAIT, icc_head, K_ICC_DISPLACED)) FAIL(3, "icc_query_nowait first 15 bytes differ");
-        rec_s(log, T_GATE, 1, 1, "9.00 kernel identity (xfast, gadget, icc_query_nowait 15 bytes)");
-        u32 dmpml4i = *(const u32 *)(kb + K_DMPML4I), dmpdpi = *(const u32 *)(kb + K_DMPDPI);
-        if (dmpml4i < 256 || dmpml4i > 511 || dmpdpi > 511) FAIL(4, "DMAP globals implausible");
+        if (!beq(kb + K_XFAST, sig_xfast, sizeof sig_xfast)) FAIL(2, "Xfast_syscall entry not at LSTAR (not an OrbisOS kernel?)");
+        u32 nmatch, why900;
+        const struct db_kofs *k = db_fw_select(kb, DB_KMAX, 1, &nmatch, &why900);
+        rec_s(log, T_NOTE, k ? k->ver : 0, (u64)nmatch | (u64)why900 << 8, "version row: ver | matches + 9.00 reject reason<<8");
+        if (!k && nmatch == 0) {
+            if (db_fw_any(kb, DB_KMAX, FW_ICC_HOOKED)) FAIL(3, "icc_query_nowait already hooked - restart the console before arming again");
+            FAIL(2, "system software not recognised (no table row matches this kernel)");
+        }
+        if (!k) FAIL(2, "more than one table row matches this kernel - refusing");
+        g_k = *k;
+        g_icc_len = db_prologue_len(kb + g_k.icc_nowait, DB_HOOK_BYTES);
+        memcpy(g_icc_head, kb + g_k.icc_nowait, g_icc_len);
+        rec_s(log, T_GATE, 1, 1, (g_k.flags & DB_FW_VERIFIED) ? "kernel recognised (verified row)"
+                                                               : "kernel recognised (UNVERIFIED row - community offsets)");
+        const u8 *p1 = kb + g_k.kmem_patch1 - 2, *p2 = kb + g_k.kmem_patch2 - 1, *ps = kb + g_k.pstate - 1;
+        rec_s(log, T_NOTE, (u64)p1[2] | (u64)p2[1] << 8 | (u64)ps[1] << 16, g_icc_len,
+              "patch sites before (p1|p2<<8|pstate<<16) | icc bytes displaced");
+        /* refuse BEFORE the DMAP proof: that dereferences an address built from the row's globals, and for an
+         * unverified row a wrong-but-plausible value could fault in ring 0 */
+        if (!g_k.phys_avail)
+            FAIL(13, "recognised, but phys_avail is unknown for this version: not arming (see docs/FIRMWARE_VERSIONS.md)");
+        u32 dmpml4i = *(const u32 *)(kb + g_k.dmpml4i), dmpdpi = *(const u32 *)(kb + g_k.dmpdpi);
         u64 dmap = 0xffff800000000000ull | (u64)dmpml4i << 39 | (u64)dmpdpi << 30;
         u64 cr3 = DB_RDCR(3) & 0x000ffffffffff000ull;
-        u64 self = ((const u64 *)(dmap + cr3))[*(const u32 *)(kb + K_DMPML4I - 4) & 511];
+        u64 self = ((const u64 *)(dmap + cr3))[*(const u32 *)(kb + g_k.pml4pml4i) & 511];
         if (!(self & 1) || (self & 0x000ffffffffff000ull) != cr3) FAIL(4, "DMAP proof failed");
         rec_s(log, T_NOTE, kbase, dmap, "kbase|dmap");
-        const u8 *p1 = kb + K_KMEM_PATCH1 - 2, *p2 = kb + K_KMEM_PATCH2 - 1, *ps = kb + K_PSTATE - 1;
-        int ok1 = p1[0] == 0x41 && p1[1] == 0xb9 && (p1[2] == 3 || p1[2] == 7) && !p1[3] && !p1[4] && !p1[5];
-        int ok2 = p2[0] == 0x6a && (p2[1] == 3 || p2[1] == 7) && p2[2] == 0xe8;
-        int ok3 = ps[0] == 0xbf && (ps[1] == 1 || ps[1] == 3) && !ps[2] && !ps[3] && !ps[4] && ps[5] == 0xe8;
-        rec_s(log, T_NOTE, (u64)p1[2] | (u64)p2[1] << 8 | (u64)ps[1] << 16, ok1 | ok2 << 1 | ok3 << 2,
-              "patch sites before (p1|p2<<8|pstate<<16)");
-        if (!ok1 || !ok2 || !ok3) FAIL(5, "patch site bytes do not match 9.00");
-        u64 kernel_map = *(const u64 *)(kb + K_KERNEL_MAP);
-        if ((kernel_map >> 47) != 0x1ffff) FAIL(6, "kernel_map not a kernel pointer");
+        u64 kernel_map = *(const u64 *)(kb + g_k.kernel_map);
         a->s_kbase = kbase; a->s_dmap = dmap; a->s_kmap = kernel_map;
         a->result = 0;
         return 0;
@@ -110,16 +121,16 @@ int db_arm(void *td, u64 *uap)
     switch (st) {
     case 1: {
         u64 fl = wp_off();
-        *(volatile u8 *)(kbase + K_KMEM_PATCH1) = 7;   /* kmem_alloc maps RWX (reference) */
-        *(volatile u8 *)(kbase + K_KMEM_PATCH2) = 7;
-        *(volatile u8 *)(kbase + K_PSTATE) = 3;        /* pstate before shutdown (reference) */
+        *(volatile u8 *)(kbase + g_k.kmem_patch1) = 7;   /* kmem_alloc maps RWX (reference) */
+        *(volatile u8 *)(kbase + g_k.kmem_patch2) = 7;
+        *(volatile u8 *)(kbase + g_k.pstate) = 3;        /* pstate before shutdown (reference) */
         wp_on(fl);
         rec_s(log, T_GATE, 2, 1, "kmem_alloc RWX + pstate patches applied");
         break;
     }
     case 2: {
         u64 blob_size = align_up((u64)(__blob_end - _start), 0x1000);
-        u64 kblob = ((kmem_alloc_t)(kbase + K_KMEM_ALLOC))(kernel_map, blob_size);
+        u64 kblob = ((kmem_alloc_t)(kbase + g_k.kmem_alloc))(kernel_map, blob_size);
         if (!kblob || (kblob >> 47) != 0x1ffff) FAIL(7, "kmem_alloc for the blob failed");
         a->s_kblob = kblob; a->s_blob_size = blob_size;
         rec_s(log, T_NOTE, kblob, blob_size, "kernel blob va|size");
@@ -143,7 +154,7 @@ int db_arm(void *td, u64 *uap)
          * console armed normally). On failure the step returns DB_ARM_RETRY and user.c sleeps
          * and calls the same step again; it gives up cleanly ("NOT armed") after ~10 s. */
         u32 k = st - 4, tries = 0;
-        kmem_contig_t contig = (kmem_contig_t)(kbase + K_KMEM_CONTIG);
+        kmem_contig_t contig = (kmem_contig_t)(kbase + g_k.kmem_contig);
         u64 v = 0;
         while (!v && tries < 4) {
             /* display buffers must be 64 KiB aligned (SDK VideoOut docs; GRAPHICS_SDK_NOTES) */
@@ -171,8 +182,8 @@ int db_arm(void *td, u64 *uap)
         break;
     }
     case 8: {
-        pmap_extract_t extract = (pmap_extract_t)(kbase + K_PMAP_EXTRACT);
-        u64 pmap = kbase + K_KERNEL_PMAP;
+        pmap_extract_t extract = (pmap_extract_t)(kbase + g_k.pmap_extract);
+        u64 pmap = kbase + g_k.kernel_pmap;
         for (u32 k = 0; k < 4; k++) {
             if (k == 3 && !a->s_va[3] && a->s_pa[3]) continue;   /* fb = OrbisOS scanout (pa set in arm7) */
             a->s_pa[k] = extract(pmap, a->s_va[k]);
@@ -186,7 +197,7 @@ int db_arm(void *td, u64 *uap)
         break;
     }
     case 9: {
-        if (!beq(kb + K_ICC_NOWAIT, icc_head, K_ICC_DISPLACED)) FAIL(10, "icc_query_nowait changed since step 0");
+        if (!g_icc_len || !beq(kb + g_k.icc_nowait, g_icc_head, g_icc_len)) FAIL(10, "icc_query_nowait changed since step 0");
         u64 keep_fb = g_db.fb_base; u32 kw = g_db.fb_w, kh = g_db.fb_h, kp = g_db.fb_pitch, kc = g_db.fb_crtc;
         memset(&g_db, 0, sizeof g_db);
         g_db.fb_base = keep_fb; g_db.fb_w = kw; g_db.fb_h = kh; g_db.fb_pitch = kp; g_db.fb_crtc = kc;
@@ -199,14 +210,14 @@ int db_arm(void *td, u64 *uap)
         g_db.region_pa = a->s_pa[1]; g_db.region_size = a->s_want[1];
         g_db.boot_pa = a->s_pa[2]; g_db.boot_size = a->s_want[2];
         g_db.unix_time = a->unix_time; g_db.tsc_hz = a->tsc_hz;
-        /* trampoline: the 15 displaced bytes are exactly the 9.00 prologue (no RIP-relative ops) */
-        memcpy(db_tramp, icc_head, K_ICC_DISPLACED);
-        db_tramp[15] = 0xff; db_tramp[16] = 0x25;       /* jmp qword ptr [rip+0] */
-        *(u32 *)(db_tramp + 17) = 0;
-        *(u64 *)(db_tramp + 21) = kbase + K_ICC_NOWAIT + K_ICC_DISPLACED;
+        /* trampoline: the displaced whole instructions (position independent, fwsel.c) + jmp back */
+        memcpy(db_tramp, g_icc_head, g_icc_len);
+        db_tramp[g_icc_len] = 0xff; db_tramp[g_icc_len + 1] = 0x25;   /* jmp qword ptr [rip+0] */
+        *(u32 *)(db_tramp + g_icc_len + 2) = 0;
+        *(u64 *)(db_tramp + g_icc_len + 6) = kbase + g_k.icc_nowait + g_icc_len;
         db_takeover = 0;
         memset(&g_patch, 0, sizeof g_patch);
-        g_patch.site = kbase + K_ICC_NOWAIT;
+        g_patch.site = kbase + g_k.icc_nowait;
         g_patch.target = a->s_kblob + ((u64)db_hook_entry - (u64)_start);
         memcpy((void *)a->s_kblob, _start, (u64)(__blob_end - _start));
         rec_s(log, T_NOTE, g_patch.site, g_patch.target, "hook site|target (installed next, CPUs stopped)");
@@ -224,17 +235,17 @@ int db_arm(void *td, u64 *uap)
  * (linux_boot.c:454 "we need reset bt/wifi"): stops the SDIO wifi DMA before the takeover, so it
  * cannot write into EDK II's memory once the IOMMU is off. Must run while OrbisOS is alive and
  * NOT inside the hook (it talks ICC; icc_query_nowait is hooked). It drops the wifi link to the
- * receiver, so user.c calls it after the last log flush. 9.00 offset: ps4-linux-loader magic.h:241
- * (PS4_9_00 kern_off_wlanbt 0x180860), prologue checked against kernel_900_full.bin. */
+ * receiver, so user.c calls it after the last log flush. Offset from the selected row (9.00:
+ * ps4-linux-loader magic.h kern_off_wlanbt 0x180860, prologue checked against kernel_900_full.bin). */
 int db_wlanbt(void *td, u64 *uap)
 {
     (void)td;
     struct db_arm_args *a = (struct db_arm_args *)uap[1];
-    if (a->magic != DB_STATE_MAGIC || a->result != 0) return 0;
+    if (a->magic != DB_STATE_MAGIC || a->result != 0 || !g_k.wlanbt) return 0;
     u64 kbase = db_rdmsr(0xc0000082) - K_XFAST;
-    static const u8 sig[9] = { 0x55, 0x48,0x89,0xe5, 0x53, 0x48,0x83,0xec,0x18 };   /* push rbp; mov rbp,rsp; push rbx; sub rsp,0x18 */
-    if (!beq((const u8 *)(kbase + K_WLANBT), sig, sizeof sig)) return 0;
-    ((void (*)(unsigned int))(kbase + K_WLANBT))(2);
+    static const u8 sig[4] = { 0x55, 0x48,0x89,0xe5 };             /* push rbp; mov rbp,rsp (also checked at arm) */
+    if (!beq((const u8 *)(kbase + g_k.wlanbt), sig, sizeof sig)) return 0;
+    ((void (*)(unsigned int))(kbase + g_k.wlanbt))(2);
     return 0;
 }
 
@@ -249,7 +260,8 @@ int db_reboot(void *td, u64 *uap)
     struct db_arm_args *a = (struct db_arm_args *)uap[1];
     if (a->magic != DB_STATE_MAGIC || a->result != 0) return 0;
     u64 kbase = db_rdmsr(0xc0000082) - K_XFAST;
-    const u8 *site = (const u8 *)(kbase + K_ICC_NOWAIT);
+    if (!g_k.icc_nowait) return 0;
+    const u8 *site = (const u8 *)(kbase + g_k.icc_nowait);
     if (!(site[0] == 0xff && site[1] == 0x25)) return 0;                       /* not armed */
     volatile u32 *kflag = (volatile u32 *)(g_db.kblob + ((u64)&db_takeover - (u64)_start));
     *kflag = 1;                                     /* the hook path would take over too */
@@ -291,15 +303,13 @@ int db_install(void *td, u64 *uap)
     struct diag_ctx *log = a->log;
     u64 kbase = db_rdmsr(0xc0000082) - K_XFAST;
     const u8 *kb = (const u8 *)kbase;
-    static const u8 icc_head[K_ICC_DISPLACED] = { 0x55, 0x48,0x89,0xe5, 0x41,0x57, 0x41,0x56, 0x41,0x54,
-                                                  0x53, 0x80,0x7f,0x01,0x04 };
-    if (!beq(kb + K_ICC_NOWAIT, icc_head, K_ICC_DISPLACED)) { a->result = -11; rec_s(log, T_ERR, 11, 0, "icc_query_nowait changed since arm"); return 0; }
+    if (!g_icc_len || !beq(kb + g_k.icc_nowait, g_icc_head, g_icc_len)) { a->result = -11; rec_s(log, T_ERR, 11, 0, "icc_query_nowait changed since arm"); return 0; }
     /* everything the other CPUs touch must be kernel memory: action + control block in kblob */
     void (*kact)(void *) = (void (*)(void *))(g_db.kblob + ((u64)db_patch_action - (u64)_start));
     struct db_patch *kp = (struct db_patch *)(g_db.kblob + ((u64)&g_patch - (u64)_start));
-    void (*nb)(void *) = (void (*)(void *))(kbase + K_SMP_NOBARRIER);
-    ((void (*)(void (*)(void *), void (*)(void *), void (*)(void *), void *))(kbase + K_SMP_RDV))(nb, kact, nb, kp);
-    const u8 *site = (const u8 *)(kbase + K_ICC_NOWAIT);
+    void (*nb)(void *) = (void (*)(void *))(kbase + g_k.smp_nobarrier);
+    ((void (*)(void (*)(void *), void (*)(void *), void (*)(void *), void *))(kbase + g_k.smp_rdv))(nb, kact, nb, kp);
+    const u8 *site = (const u8 *)(kbase + g_k.icc_nowait);
     int ok = site[0] == 0xff && site[1] == 0x25 && *(const u64 *)(site + 6) == kp->target;
     rec_s(log, T_NOTE, kp->arrived, kp->done, "rendezvous: cpus arrived | patch done");
     if (!ok) { a->result = -12; rec_s(log, T_ERR, 12, 0, "hook bytes not in place after rendezvous"); return 0; }

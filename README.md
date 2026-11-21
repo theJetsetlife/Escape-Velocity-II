@@ -16,6 +16,7 @@ rules learned the hard way, and the next steps.
 | Delivery (WebKitty → Lapse → GoldHEN slot) → ring 0 → takeover → EDK II → UEFI Shell on screen | **proven on hardware** (stage `ff86e20d` + UEFI `5c32a84d`, `prebuilt/hw-verified/`) |
 | USB (xHCI ×3), SATA, SD, UART, DualShock 4 as keyboard, Marvell Yukon Ethernet | built + QEMU-tested (`prebuilt/io-build/`, UEFI `d7a705d2`); **not yet run on hardware** |
 | 6 GiB RAM (2 GiB VRAM carve), DMA bounce < 2 GiB, NTFS (read-only), `ps4log` | built + QEMU-tested in this tree; **not yet run on hardware** |
+| Other system software (5.05–14.02) | stage recognises 22 versions from a per-version offset table; only 9.00 is verified and armed, the rest are refused until their `phys_avail` is known — [docs/FIRMWARE_VERSIONS.md](docs/FIRMWARE_VERSIONS.md) |
 | Windows 10 | Setup reaches its first screen in QEMU through this firmware with the PS4 DSDT; needs a working IOAPIC (open problem) — [docs/WINDOWS10.md](docs/WINDOWS10.md) |
 
 ## Layout

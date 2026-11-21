@@ -5,9 +5,9 @@
  * operation and took over under a live OrbisOS. So: until db_reboot sets db_takeover, every
  * call passes straight through to the original function via db_tramp (registers untouched).
  *
- * db_tramp = the 15 original bytes (push rbp; mov rbp,rsp; push r15; push r14; push r12;
- * push rbx; cmpb $4,1(%rdi) - no RIP-relative operands) + jmp qword [rip] -> icc+15.
- * db_arm fills it before copying the blob.
+ * db_tramp = the displaced original bytes (whole instructions, no RIP-relative operands, checked by
+ * fwsel.c; on 9.00: push rbp; mov rbp,rsp; push r15; push r14; push r12; push rbx; cmpb $4,1(%rdi) =
+ * 15 bytes) + jmp qword [rip] -> icc + that length. db_arm fills it before copying the blob.
  */
     .section .text, "ax"
     .globl  db_hook_entry
@@ -22,7 +22,7 @@ db_hook_entry:
     .balign 16
     .globl  db_tramp
 db_tramp:
-    .fill   32, 1, 0xcc
+    .fill   64, 1, 0xcc
     .globl  db_takeover
     .balign 4
 db_takeover:

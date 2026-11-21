@@ -16,7 +16,8 @@ PS4 browser ── WebKitty page (PSFree + Lapse kernel exploit, 9.00 kpatch: sy
    src/upl_load.c  load the Universal Payload ELF, apply relocations, build HOBs, jump
    EDK II (UefiPayloadPkg + Ps4Pkg) → DXE → BDS → UEFI Shell / boot option
 ```
-The stage refuses to run on anything but retail 9.00 (kernel signature gates) and halts with a red square if
+The stage picks its kernel offsets from a per-version table (`fwtable.h`, `fwsel.c`; docs/FIRMWARE_VERSIONS.md),
+arms only versions with a known `phys_avail` (9.00 today) and halts with a red square if
 `upl_load` fails. On-screen progress squares: `src/directboot/README.md`.
 
 ## Handoff interfaces (stage → EDK II)

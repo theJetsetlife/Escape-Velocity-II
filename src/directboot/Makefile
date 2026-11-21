@@ -12,8 +12,8 @@ CFLAGS = --target=x86_64-unknown-none-elf -march=btver2 -O2 -std=gnu11 \
          -fno-unwind-tables -mno-red-zone -mgeneral-regs-only -fcf-protection=none \
          -include ../diag/rec.h -Wall -Wextra -Werror $(EXTRA_CFLAGS)
 ASFLAGS = --target=x86_64-unknown-none-elf $(IP_DEFS) -DPC_PORT=$(PC_PORT)
-OBJS = entry.o user.o arm.o hook.o hook_entry.o upl_load.o memmap.o hda.o
-HDRS = db.h memmap.h hda.h ../diag/diag.h ../diag/rec.h ../upl_load.h ../upl_hob.h ../ps4.h
+OBJS = entry.o user.o arm.o fwsel.o hook.o hook_entry.o upl_load.o memmap.o hda.o
+HDRS = db.h fwsel.h fwtable.h memmap.h hda.h ../diag/diag.h ../diag/rec.h ../upl_load.h ../upl_hob.h ../ps4.h
 
 all: directboot.bin
 
