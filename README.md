@@ -18,6 +18,7 @@ learned the hard way, and the next steps.
 | USB (xHCI ×3), SATA, SD, UART, DualShock 4 as keyboard, Marvell Yukon Ethernet | built + QEMU-tested (`prebuilt/io-build/`, UEFI `d7a705d2`); **not yet run on hardware** |
 | 6 GiB RAM (2 GiB VRAM carve), DMA bounce < 2 GiB, NTFS (read-only), `ps4log` | built + QEMU-tested; **not yet run on hardware** |
 | System software versions | stage selects kernel offsets per version at run time: 22 rows (5.05–14.02) from the PS4 Linux loader, cross-checked against OpenGoldHEN (16 versions, 80/80 values agree), 13 further point releases share a row's layout. **9.00 arms; the others are recognised and refused** until their `phys_avail` is known. Multi-version stage checked against the 9.00 kernel dump, **not yet run on hardware** — [docs/FIRMWARE_VERSIONS.md](docs/FIRMWARE_VERSIONS.md) |
+| Real-time clock (no CMOS) | fixed in the firmware, not per OS: Aeolia RTC counter as EFI runtime time + ACPI Time and Alarm Device, revision-6 FADT "CMOS RTC not present" (Windows HAL and Linux honour it). AML tested in acpiexec; **not yet run on hardware**; offset not persistent until ICC — [docs/RTC.md](docs/RTC.md) |
 | Windows 10 | Setup reaches its first screen in QEMU through this firmware with the PS4 DSDT; needs a working IOAPIC (open problem) — [docs/WINDOWS10.md](docs/WINDOWS10.md) |
 
 ## How version support works

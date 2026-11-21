@@ -3,7 +3,7 @@
 #   make stage     PS4 directboot stage  -> src/directboot/directboot.bin (needs PC_IP from server/.env)
 #   make upl       EDK II Universal Payload -> out/upl-ps4.elf
 #   make hosttest  host-side unit tests (UPL loader, memory map rules, DS4 parser, version selection;
-#                  KDUMP=<9.00 kernel dump> adds the dump checks)
+#                  ACPI TAD AML in acpiexec; KDUMP=<9.00 kernel dump> adds the dump checks)
 #   make qemu      QEMU regression matrix (must all print RESULT: PASS before any PS4 run)
 #   make server    start the PC-side containers (WebKitty + receiver)
 #   make deploy    put stage into the WebKitty slot, verify both served hashes
@@ -40,6 +40,7 @@ hosttest:
 	$(T)/ds4_hosttest | tail -1
 	cc -O1 -Wall -Wextra -I src -I src/directboot tools/fwsel_hosttest.c src/directboot/fwsel.c -o $(T)/fwsel_hosttest
 	$(T)/fwsel_hosttest $(KDUMP) | tail -1
+	python3 -I tools/rtc_amltest.py > $(T)/rtc_amltest.log; rc=$$?; tail -1 $(T)/rtc_amltest.log; exit $$rc
 
 qemu:
 	qemu/matrix.sh

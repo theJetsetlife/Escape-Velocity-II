@@ -31,7 +31,9 @@ MMIO block that can stand in.
 
 ## Next obstacles expected on hardware
 - FADT: SCI 9 has no IOAPIC route; PM timer at 0x1008 does not count; not hardware-reduced (a clock source for the
-  HAL without PIT/HPET/RTC is an open question).
+  HAL without PIT/HPET/RTC is an open question). **RTC done in firmware** (`docs/RTC.md`): revision-6 FADT with
+  "CMOS RTC not present" makes the HAL take wall time from the ACPI TAD (`HalpSetPlatformFlags`) and skip the CMOS
+  RTC as a timer source (`HalpRtcDiscover`); both checks need FADT revision >= 5, which Sony's (4) is not.
 - Windows USB: three xHCI controllers behind one PCI function (Sony class code, Aeolia MSI routing). Plan: an INF
   binding `mf.sys` to split the function, plus MSI setup; then a Windows To Go style external drive.
 - Display: GOP framebuffer only (Basic Display driver).

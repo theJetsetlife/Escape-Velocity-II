@@ -32,6 +32,7 @@
   IoLib
   MemoryAllocationLib
   PrintLib
+  TimerLib
   Ps4UartLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
@@ -45,6 +46,7 @@
   gEfiSmbios3TableGuid
   gUefiAcpiBoardInfoGuid
   gPs4DirectbootInfoGuid
+  gPs4RtcMailboxGuid
 
 [Protocols]
   gEfiShellDynamicCommandProtocolGuid           ## PRODUCES

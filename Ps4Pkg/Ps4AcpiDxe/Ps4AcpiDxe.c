@@ -21,6 +21,15 @@
   (seen in QEMU 2026-11-20: FADT FIRMWARE_CTRL 0x7FFE0000 "not in map"). Here the FACS is copied into
   a 64-byte aligned ACPI NVS page below 4 GiB and the FADT is repointed (FIRMWARE_CTRL set,
   X_FIRMWARE_CTRL zero, checksum fixed).
+
+  RTC: the PS4 has no PC-AT CMOS RTC at I/O 0x70/0x71, but Sony's FADT (revision 4, IAPC_BOOT_ARCH 0, HW run 2)
+  says nothing, so every OS assumes one. On PS4 tables the FADT is rebuilt as revision 6 with IAPC_BOOT_ARCH
+  "CMOS RTC not present" (BIT5), no RTC alarm/century CMOS indexes and no fixed RTC wake event, and the DSDT
+  gets an ACPI Time and Alarm Device on the real clock (Ps4RtcDxe mailbox, Ps4Dsdt.asl \_SB.PTAD).
+  The revision matters: Windows 10 22H2 HalpSetPlatformFlags reads IAPC_BOOT_ARCH only when the FADT revision
+  is >= 5, and then answers time queries from the ACPI TAD (HalpQueryAcpiRealTimeClock) instead of CMOS
+  (HalpReadCmosTime); HalpRtcDiscover likewise skips the CMOS RTC timer. Linux: no rtc_cmos device,
+  wall clock from rtc-efi / acpi_tad. One firmware fix instead of a PS4 patch in each OS.
 **/
 
 #include <PiDxe.h>
@@ -37,6 +46,7 @@
 #include <Library/IoLib.h>
 #include <IndustryStandard/MemoryMappedConfigurationSpaceAccessTable.h>
 #include <Guid/Ps4DirectbootInfo.h>
+#include <Guid/Ps4RtcMailbox.h>
 #include "Ps4Dsdt.h"
 
 #define MMIO_TOP_32     0xFEBFFFFFull           // IOAPIC/HPET/LAPIC/flash region starts at 0xFEC00000
@@ -355,6 +365,24 @@ CheckBars (
   DEBUG ((DEBUG_INFO, "Ps4Acpi: %u memory BARs checked, %u outside the windows\n", Seen, Outside));
 }
 
+/* The RTC mailbox when Ps4RtcDxe found and mapped the Aeolia counter (so \_SB.PTAD is present); NULL otherwise. */
+STATIC
+PS4_RTC_MAILBOX *
+RtcMailboxWithCounter (
+  VOID
+  )
+{
+  PS4_RTC_MAILBOX  *Mbox;
+
+  if (EFI_ERROR (EfiGetSystemConfigurationTable (&gPs4RtcMailboxGuid, (VOID **)&Mbox)) || (Mbox == NULL) ||
+      (Mbox->Signature != PS4_RTC_MAILBOX_SIGNATURE) || ((Mbox->Flags & PS4_RTC_FLAG_COUNTER) == 0))
+  {
+    return NULL;
+  }
+
+  return Mbox;
+}
+
 STATIC
 VOID
 InstallDsdt (
@@ -375,6 +403,9 @@ InstallDsdt (
   EFI_PHYSICAL_ADDRESS  New;
   UINT8                 *Aml;
   BOOLEAN               Ok;
+  PS4_RTC_MAILBOX       *Mbox;
+  UINT64                RtcBase;
+  UINT64                RtcMbox;
 
   Ecam   = 0xF8000000;                                          // Sony MCFG (9.00 dump) as the fallback
   BusMax = 0x3F;
@@ -426,6 +457,16 @@ InstallDsdt (
   Aml = (UINT8 *)(UINTN)New;
   CopyMem (Aml, mPs4DsdtAml, sizeof (mPs4DsdtAml));
   W  = &Win[0][0];
+
+  /* RTC: the Time and Alarm Device reports absent (_STA 0) unless Ps4RtcDxe found the Aeolia counter */
+  RtcBase = 0;
+  RtcMbox = 0;
+  Mbox    = RtcMailboxWithCounter ();
+  if (Mbox != NULL) {
+    RtcBase = Mbox->CounterBase;
+    RtcMbox = (UINTN)Mbox;
+  }
+
   Ok = PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A0001, Ecam, FALSE) &&
        PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A0002, EcamLen, FALSE) &&
        PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A0003, BusMax, FALSE) &&
@@ -435,7 +476,9 @@ InstallDsdt (
        PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A0007, W[3], FALSE) &&
        PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A000A, (W[5] > W[4]) ? 1 : 0, FALSE) &&
        PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A5A5A5A5A0008ull, W[4], TRUE) &&
-       PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A5A5A5A5A0009ull, W[5], TRUE);
+       PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A5A5A5A5A0009ull, W[5], TRUE) &&
+       PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A5A5A5A5A000Bull, RtcBase, TRUE) &&
+       PatchAml (Aml, sizeof (mPs4DsdtAml), 0x5A5A5A5A5A5A000Cull, RtcMbox, TRUE);
   if (!Ok) {
     gBS->FreePages (New, EFI_SIZE_TO_PAGES (sizeof (mPs4DsdtAml)));
     return;
@@ -445,6 +488,8 @@ InstallDsdt (
   ((EFI_ACPI_DESCRIPTION_HEADER *)Aml)->Checksum = CalculateCheckSum8 (Aml, sizeof (mPs4DsdtAml));
   DEBUG ((DEBUG_INFO, "Ps4Acpi: DSDT replaced (%lx -> %lx): ECAM %lx buses 0-%lx, windows %lx-%lx %lx-%lx %lx-%lx\n",
           (Fadt->XDsdt != 0) ? Fadt->XDsdt : Fadt->Dsdt, New, Ecam, BusMax, W[0], W[1], W[2], W[3], W[4], W[5]));
+  DEBUG ((DEBUG_INFO, "Ps4Acpi: ACPI TAD (ACPI000E) %a: counter %lx, mailbox %lx\n",
+          (RtcMbox != 0) ? "present" : "absent (no RTC counter)", RtcBase, RtcMbox));
   Fadt->Dsdt = (UINT32)New;
   if (Fadt->Header.Length >= OFFSET_OF (EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE, XPm1aEvtBlk)) {
     Fadt->XDsdt = New;
@@ -603,6 +648,59 @@ AddRamIoApic (
           Page, Madt, Copy));
 }
 
+/*
+  Tell the OS there is no CMOS RTC. Returns the FADT now in the root tables (a revision-6 copy when the old one
+  was shorter, as Sony's 244-byte revision-4 table is).
+*/
+STATIC
+EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE *
+NoCmosRtcFadt (
+  IN EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE  *Fadt
+  )
+{
+  EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE  *F;
+  EFI_PHYSICAL_ADDRESS                       New;
+  UINT8                                      OldRevision;
+  UINT32                                     OldLength;
+
+  OldRevision = Fadt->Header.Revision;
+  OldLength   = Fadt->Header.Length;
+  F           = Fadt;
+  if ((OldLength < sizeof (*F)) || (OldRevision < EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE_REVISION)) {
+    New = BASE_4GB - 1;                                         // RSDT entries are 32-bit
+    if (EFI_ERROR (gBS->AllocatePages (AllocateMaxAddress, EfiACPIReclaimMemory, EFI_SIZE_TO_PAGES (sizeof (*F)), &New))) {
+      DEBUG ((DEBUG_ERROR, "Ps4Acpi: no memory for the revision-6 FADT; CMOS RTC still advertised\n"));
+      return Fadt;
+    }
+
+    F = (EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE *)(UINTN)New;
+    ZeroMem (F, sizeof (*F));
+    CopyMem (F, Fadt, MIN (OldLength, sizeof (*F)));
+    if (OldLength < sizeof (*F)) {
+      F->Header.Length = sizeof (*F);                           // new fields (sleep regs, hypervisor id) stay 0
+    }
+
+    F->Header.Revision = EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE_REVISION;
+    F->MinorVersion    = EFI_ACPI_6_0_FIXED_ACPI_DESCRIPTION_TABLE_MINOR_REVISION;
+  }
+
+  F->IaPcBootArch |= EFI_ACPI_6_0_CMOS_RTC_NOT_PRESENT;
+  F->DayAlrm       = 0;                                         // no CMOS RAM indexes
+  F->MonAlrm       = 0;
+  F->Century       = 0;
+  F->Flags        |= EFI_ACPI_6_0_FIX_RTC;                      // no RTC wake status in the PM1 fixed registers
+  F->Flags        &= ~(UINT32)EFI_ACPI_6_0_RTC_S4;
+  F->Header.Checksum = 0;
+  F->Header.Checksum = CalculateCheckSum8 ((UINT8 *)F, F->Header.Length);
+  if (F != Fadt) {
+    RepointRootTables ((UINTN)Fadt, (UINTN)F);
+  }
+
+  DEBUG ((DEBUG_INFO, "Ps4Acpi: FADT rev %u (%u B) -> rev %u (%u B) at %p: IAPC_BOOT_ARCH %x (CMOS RTC not present), flags %x\n",
+          OldRevision, OldLength, F->Header.Revision, F->Header.Length, F, F->IaPcBootArch, F->Flags));
+  return F;
+}
+
 EFI_STATUS
 EFIAPI
 Ps4AcpiEntryPoint (
@@ -626,6 +724,13 @@ Ps4AcpiEntryPoint (
     InstallDsdt (Fadt);
     Fadt->Header.Checksum = 0;
     Fadt->Header.Checksum = CalculateCheckSum8 ((UINT8 *)Fadt, Fadt->Header.Length);
+    // Only with a working replacement: otherwise the OS would get neither a CMOS RTC nor a present TAD.
+    // (The QEMU harness lands here: it has a real CMOS RTC and no Aeolia, so its FADT stays as it is.)
+    if (RtcMailboxWithCounter () != NULL) {
+      Fadt = NoCmosRtcFadt (Fadt);
+    } else {
+      DEBUG ((DEBUG_WARN, "Ps4Acpi: no Aeolia RTC counter (no ACPI TAD); FADT keeps the CMOS RTC\n"));
+    }
   } else {
     DEBUG ((DEBUG_INFO, "Ps4Acpi: tables are not Sony's (OEM %.6a); DSDT kept\n", Fadt->Header.OemId));
   }
