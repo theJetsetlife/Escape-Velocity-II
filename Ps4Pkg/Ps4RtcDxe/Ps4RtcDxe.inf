@@ -1,5 +1,7 @@
 ## @file
-#  Real Time Clock for the PS4 (no CMOS): OrbisOS time from the directboot HOB + TSC.
+#  Real Time Clock for the PS4 (no CMOS): the Aeolia/Belize battery-backed seconds counter
+#  (00:14.4 BAR2 + 0x130) as EFI runtime time, shared with the ACPI TAD through a mailbox.
+#  TSC fallback when no glue function answers (QEMU harness).
 ##
 
 [Defines]
@@ -7,7 +9,7 @@
   BASE_NAME                      = Ps4RtcDxe
   FILE_GUID                      = 318320D3-3F46-4600-BB3D-4132FC2C33D9
   MODULE_TYPE                    = DXE_RUNTIME_DRIVER
-  VERSION_STRING                 = 1.0
+  VERSION_STRING                 = 2.0
   ENTRY_POINT                    = Ps4RtcEntryPoint
 
 [Sources]
@@ -15,12 +17,16 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
   Ps4Pkg/Ps4Pkg.dec
 
 [LibraryClasses]
   BaseLib
+  BaseMemoryLib
   DebugLib
+  DxeServicesTableLib
   HobLib
+  IoLib
   PcdLib
   TimerLib
   UefiBootServicesTableLib
@@ -29,6 +35,9 @@
 
 [Guids]
   gPs4DirectbootInfoGuid                        ## SOMETIMES_CONSUMES ## HOB
+  gUefiAcpiBoardInfoGuid                        ## SOMETIMES_CONSUMES ## HOB (ECAM)
+  gPs4RtcMailboxGuid                            ## PRODUCES ## SystemTable
+  gEfiEventVirtualAddressChangeGuid             ## CONSUMES ## Event
 
 [Protocols]
   gEfiRealTimeClockArchProtocolGuid             ## PRODUCES
@@ -37,4 +46,4 @@
   gPs4TokenSpaceGuid.PcdPs4RtcFallbackUnixTime  ## CONSUMES
 
 [Depex]
-  TRUE
+  gEfiCpuArchProtocolGuid                       # UC + RUNTIME attributes on the counter page

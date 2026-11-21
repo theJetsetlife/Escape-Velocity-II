@@ -3,7 +3,7 @@
 ##   PS4: platform FDF
 ##   PS4: TimerLib: Jaguar has no CPUID 0x15; PM timer not trusted -> TSC (Ps4TscTimerLib)
 ##   PS4: TimerLib (non-CPU-timer branch) -> TSC as well
-##   PS4: RTC: no CMOS at 0x70/0x71 -> Ps4RtcDxe (OrbisOS time from the directboot HOB + TSC)
+##   PS4: RTC: no CMOS at 0x70/0x71 -> Ps4RtcDxe (Aeolia RTC counter as EFI time; ACPI TAD + no-CMOS FADT via Ps4AcpiDxe)
 ##   PS4: RTC: drop the CMOS port PCDs (no module declares them once PcatRealTimeClock is gone)
 ##   PS4: Serial: no legacy UART -> DEBUG() text on the framebuffer (Ps4FbSerialPortLib), coreboot variant
 ##   PS4: Serial: HOB-based DXE variant (2 places)

@@ -28,6 +28,7 @@
 #include <Library/UefiLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Guid/Ps4DirectbootInfo.h>
+#include <Guid/Ps4RtcMailbox.h>
 #include <Ps4FbConsole.h>
 #include "Ps4Log.h"
 
@@ -209,6 +210,7 @@ ReportFirmware (
   EFI_TIME                   Now;
   VOID                       *Hob;
   CONST PS4_DIRECTBOOT_INFO  *Info;
+  PS4_RTC_MAILBOX            *Rtc;
 
   RSection (R, "firmware");
   RPrint (R, "vendor %s revision %x, UEFI %u.%u\n", gST->FirmwareVendor, gST->FirmwareRevision,
@@ -223,6 +225,17 @@ ReportFirmware (
     RPrint (R, "directboot: unix time %lu, TSC %lu Hz, kbase %lx, fb %lx %ux%u pitch %u crtc %u, halted APs %u\n",
             Info->UnixTime, Info->TscHz, Info->KernelBase, Info->FbBase, Info->FbWidth, Info->FbHeight,
             Info->FbPitchBytes, Info->FbCrtc, Info->HaltedAps);
+  }
+
+  if (!EFI_ERROR (EfiGetSystemConfigurationTable (&gPs4RtcMailboxGuid, (VOID **)&Rtc)) && (Rtc != NULL) &&
+      (Rtc->Signature == PS4_RTC_MAILBOX_SIGNATURE))
+  {
+    RPrint (R, "rtc: %a, counter %lx (%u at seed, %u now), seed %lu from %a, offset %ld, flags %x\n",
+            ((Rtc->Flags & PS4_RTC_FLAG_COUNTER) != 0) ? "Aeolia counter + ACPI TAD" : "TSC fallback, no ACPI TAD",
+            Rtc->CounterBase, Rtc->SeedCounter,
+            (Rtc->CounterBase != 0) ? ((MmioRead32 ((UINTN)Rtc->CounterBase) & 0xFF) | ((MmioRead32 ((UINTN)Rtc->CounterBase + 4) & 0xFF) << 8) |
+                                       ((MmioRead32 ((UINTN)Rtc->CounterBase + 8) & 0xFF) << 16) | ((MmioRead32 ((UINTN)Rtc->CounterBase + 12) & 0xFF) << 24)) : 0,
+            Rtc->SeedUnix, ((Rtc->Flags & PS4_RTC_FLAG_SEED_ORBIS) != 0) ? "OrbisOS" : "build fallback", Rtc->Offset, Rtc->Flags);
   }
 
   RPrint (R, "southbridge UART: %a\n", Ps4UartPresent () ? "present (115200 8N1)" : "not found");

@@ -45,6 +45,7 @@
   gEfiSmbios3TableGuid
   gUefiAcpiBoardInfoGuid
   gPs4DirectbootInfoGuid
+  gPs4RtcMailboxGuid
 
 [Protocols]
   gEfiShellDynamicCommandProtocolGuid           ## PRODUCES

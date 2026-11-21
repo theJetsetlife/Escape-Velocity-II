@@ -1,5 +1,5 @@
 ## @file
-#  Ps4AcpiDxe - fix up the bootloader ACPI tables for OS loaders (FACS into ACPI NVS; see Ps4AcpiDxe.c).
+#  Ps4AcpiDxe - fix up the bootloader ACPI tables for OS loaders (FACS into ACPI NVS, own DSDT + ACPI TAD, no-CMOS FADT; see Ps4AcpiDxe.c).
 ##
 
 [Defines]
@@ -32,9 +32,12 @@
 [Guids]
   gEfiAcpi20TableGuid
   gPs4DirectbootInfoGuid
+  gPs4RtcMailboxGuid                            ## SOMETIMES_CONSUMES ## SystemTable (ACPI TAD)
 
 [Protocols]
   gEfiAcpiTableProtocolGuid                     ## CONSUMES (ordering: tables from the HOB are installed)
+  gEfiRealTimeClockArchProtocolGuid             ## CONSUMES (ordering only)
 
 [Depex]
-  gEfiAcpiTableProtocolGuid
+  gEfiAcpiTableProtocolGuid AND
+  gEfiRealTimeClockArchProtocolGuid             # Ps4RtcDxe published the RTC mailbox

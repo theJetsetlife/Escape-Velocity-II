@@ -13,6 +13,7 @@ southbridge, GPU or firmware.
 | DMA bounce buffers below 2 GiB for 31-bit southbridge masters; multi-BAR PciIo shim | QEMU | current tree |
 | NTFS (read-only, OpenNtfsDxe port) | QEMU | current tree |
 | `ps4log` one-command log + boot-time auto-save, 1 MiB boot-log ring | QEMU (LAN/DHCP/DNS/PXE/TFTP PASS on virtio-net) | current tree |
+| No-CMOS RTC done in firmware: Aeolia counter as EFI time + ACPI TAD (`ACPI000E`) + revision-6 FADT "CMOS RTC not present" (docs/RTC.md) | acpiexec (AML) + QEMU (FADT/TSC fallback); counter path only on hardware | current tree |
 | Windows 10 Setup first screen through this firmware | QEMU (with the PS4 DSDT, real QEMU IOAPIC) | current tree |
 
 **Nothing after the hardware-verified pair has run on a PS4 yet.** The next hardware run should be the
@@ -48,7 +49,8 @@ io-build (one change set), then the current tree.
    thin SVM hypervisor emulating an IOAPIC (Jaguar has SVM; check VM_CR in `ps4log`), or an MMIO region of the
    southbridge that can act as one.
 3. **Windows FADT**: Sony's FADT routes SCI 9 (no IOAPIC route), its PM timer at 0x1008 does not count, it is not
-   hardware-reduced. Expect this to be the next HAL/ACPI obstacle on hardware.
+   hardware-reduced. Expect this to be the next HAL/ACPI obstacle on hardware. The RTC part is handled: the
+   FADT is now revision 6 with "CMOS RTC not present" and the DSDT has an ACPI TAD (docs/RTC.md).
 4. **Windows USB boot** (the end goal: Windows from an external USB drive): the PS4's three xHCI controllers sit
    behind one PCI function with a Sony class code and Aeolia MSI routing; Windows' inbox driver will not bind.
    Likely route: an INF using `mf.sys` to split the function + MSI programming. Research stage.

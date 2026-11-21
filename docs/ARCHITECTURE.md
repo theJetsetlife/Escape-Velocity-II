@@ -44,7 +44,7 @@ arms only versions with a known `phys_avail` (9.00 today) and halts with a red s
 | `Ps4YukonDxe` | Marvell Yukon Ethernet (port of OpenPlatformPkg MarvellYukonDxe) |
 | `Ps4Ds4Dxe` | USB DualShock 4 as a UEFI keyboard |
 | `Ps4ApicFixupDxe` | clean the inherited BSP local APIC (stale ISR/IRR/TPR) |
-| `Ps4RtcDxe`, `Ps4RngDxe` | RTC from OrbisOS time + TSC (no CMOS); RNG protocol (non-cryptographic, no RDRAND on Jaguar) |
+| `Ps4RtcDxe`, `Ps4RngDxe` | RTC: Aeolia battery-backed counter as EFI runtime time, shared with the ACPI TAD; TSC fallback (no CMOS, see `docs/RTC.md`); RNG protocol (non-cryptographic, no RDRAND on Jaguar) |
 | `Ps4NtfsDxe` | read-only NTFS (OpenNtfsDxe port) |
 | `Ps4LogDxe` | `ps4log` Shell command + ReadyToBoot auto-save |
 | `Ps4AcpiDxe` (+ `Ps4Dsdt.asl`) | FACS into ACPI NVS; own DSDT on Sony tables (root bridge windows measured at boot); RAM IOAPIC when the MADT has none |

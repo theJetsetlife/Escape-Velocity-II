@@ -27,7 +27,7 @@ DSC_EDITS = [
     ("TimerLib (non-CPU-timer branch) -> TSC as well",
      "  TimerLib|UefiPayloadPkg/Library/AcpiTimerLib/AcpiTimerLib.inf",
      "  TimerLib|Ps4Pkg/Library/Ps4TscTimerLib/Ps4TscTimerLib.inf"),
-    ("RTC: no CMOS at 0x70/0x71 -> Ps4RtcDxe (OrbisOS time from the directboot HOB + TSC)",
+    ("RTC: no CMOS at 0x70/0x71 -> Ps4RtcDxe (Aeolia RTC counter as EFI time; ACPI TAD + no-CMOS FADT via Ps4AcpiDxe)",
      "  PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf",
      "  Ps4Pkg/Ps4RtcDxe/Ps4RtcDxe.inf"),
     ("RTC: drop the CMOS port PCDs (no module declares them once PcatRealTimeClock is gone)",
