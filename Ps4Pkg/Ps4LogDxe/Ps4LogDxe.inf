@@ -32,6 +32,7 @@
   IoLib
   MemoryAllocationLib
   PrintLib
+  TimerLib
   Ps4UartLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint

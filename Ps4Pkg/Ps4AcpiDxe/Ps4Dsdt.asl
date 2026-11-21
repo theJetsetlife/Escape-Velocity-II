@@ -195,20 +195,42 @@ DefinitionBlock ("", "DSDT", 2, "PS4FW ", "PS4DSDT ", 0x00000001)
                 Return (0x04)                           // bit 2: get/set real time; no wake timers
             }
 
+            // one read of the counter; Ones (64-bit) when a register reads all ones (master abort:
+            // 00:14.4 stopped decoding, is in D3 or BAR2 moved), as Ps4RtcCounterRaw in Ps4RtcCounter.h
             Method (RAWC, 0, Serialized)
             {
-                Return ((CB0 & 0xFF) | ((CB1 & 0xFF) << 0x08) | ((CB2 & 0xFF) << 0x10) | ((CB3 & 0xFF) << 0x18))
+                Local0 = CB0
+                Local1 = CB1
+                Local2 = CB2
+                Local3 = CB3
+                If ((((Local0 == 0xFFFFFFFF) || (Local1 == 0xFFFFFFFF)) || (Local2 == 0xFFFFFFFF)) ||
+                    (Local3 == 0xFFFFFFFF))
+                {
+                    Return (Ones)
+                }
+
+                Return ((Local0 & 0xFF) | ((Local1 & 0xFF) << 0x08) | ((Local2 & 0xFF) << 0x10) | ((Local3 & 0xFF) << 0x18))
             }
 
-            // counter value once two reads 100 us apart agree; Ones when it never settles
+            // counter value once two reads 100 us apart agree; Ones when it never settles or does not answer
             Method (CNOW, 0, Serialized)
             {
                 Local0 = RAWC ()
+                If (Local0 == Ones)
+                {
+                    Return (Ones)
+                }
+
                 Local2 = 0x15
                 While (Local2)
                 {
                     Stall (0x64)
                     Local1 = RAWC ()
+                    If (Local1 == Ones)
+                    {
+                        Return (Ones)
+                    }
+
                     If (Local1 == Local0)
                     {
                         Return (Local0)
@@ -293,6 +315,13 @@ DefinitionBlock ("", "DSDT", 2, "PS4FW ", "PS4DSDT ", 0x00000001)
                 CreateByteField (Arg0, 0x0C, DAYL)
                 If ((((YEAR < 0x07B2) || (YEAR > 0x270F)) || ((MNTH < One) || (MNTH > 0x0C))) ||
                     (((DAYM < One) || (DAYM > 0x1F)) || (((HOUR > 0x17) || (MINU > 0x3B)) || (SECO > 0x3B))))
+                {
+                    Return (0xFFFFFFFF)
+                }
+
+                // TimeZone: 2047 (unspecified) or -1440..1440 as a signed word; Daylight: bits 0-1 only.
+                // Same contract as Ps4SetTime, since EFI GetTime returns what is stored here.
+                If (((TZON != 0x07FF) && ((TZON > 0x05A0) && (TZON < 0xFA60))) || (DAYL & 0xFC))
                 {
                     Return (0xFFFFFFFF)
                 }

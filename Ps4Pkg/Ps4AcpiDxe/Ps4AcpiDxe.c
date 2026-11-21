@@ -365,6 +365,24 @@ CheckBars (
   DEBUG ((DEBUG_INFO, "Ps4Acpi: %u memory BARs checked, %u outside the windows\n", Seen, Outside));
 }
 
+/* The RTC mailbox when Ps4RtcDxe found and mapped the Aeolia counter (so \_SB.PTAD is present); NULL otherwise. */
+STATIC
+PS4_RTC_MAILBOX *
+RtcMailboxWithCounter (
+  VOID
+  )
+{
+  PS4_RTC_MAILBOX  *Mbox;
+
+  if (EFI_ERROR (EfiGetSystemConfigurationTable (&gPs4RtcMailboxGuid, (VOID **)&Mbox)) || (Mbox == NULL) ||
+      (Mbox->Signature != PS4_RTC_MAILBOX_SIGNATURE) || ((Mbox->Flags & PS4_RTC_FLAG_COUNTER) == 0))
+  {
+    return NULL;
+  }
+
+  return Mbox;
+}
+
 STATIC
 VOID
 InstallDsdt (
@@ -443,9 +461,8 @@ InstallDsdt (
   /* RTC: the Time and Alarm Device reports absent (_STA 0) unless Ps4RtcDxe found the Aeolia counter */
   RtcBase = 0;
   RtcMbox = 0;
-  if (!EFI_ERROR (EfiGetSystemConfigurationTable (&gPs4RtcMailboxGuid, (VOID **)&Mbox)) && (Mbox != NULL) &&
-      (Mbox->Signature == PS4_RTC_MAILBOX_SIGNATURE) && ((Mbox->Flags & PS4_RTC_FLAG_COUNTER) != 0))
-  {
+  Mbox    = RtcMailboxWithCounter ();
+  if (Mbox != NULL) {
     RtcBase = Mbox->CounterBase;
     RtcMbox = (UINTN)Mbox;
   }
@@ -707,7 +724,13 @@ Ps4AcpiEntryPoint (
     InstallDsdt (Fadt);
     Fadt->Header.Checksum = 0;
     Fadt->Header.Checksum = CalculateCheckSum8 ((UINT8 *)Fadt, Fadt->Header.Length);
-    Fadt = NoCmosRtcFadt (Fadt);
+    // Only with a working replacement: otherwise the OS would get neither a CMOS RTC nor a present TAD.
+    // (The QEMU harness lands here: it has a real CMOS RTC and no Aeolia, so its FADT stays as it is.)
+    if (RtcMailboxWithCounter () != NULL) {
+      Fadt = NoCmosRtcFadt (Fadt);
+    } else {
+      DEBUG ((DEBUG_WARN, "Ps4Acpi: no Aeolia RTC counter (no ACPI TAD); FADT keeps the CMOS RTC\n"));
+    }
   } else {
     DEBUG ((DEBUG_INFO, "Ps4Acpi: tables are not Sony's (OEM %.6a); DSDT kept\n", Fadt->Header.OemId));
   }

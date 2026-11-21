@@ -40,7 +40,7 @@ hosttest:
 	$(T)/ds4_hosttest | tail -1
 	cc -O1 -Wall -Wextra -I src -I src/directboot tools/fwsel_hosttest.c src/directboot/fwsel.c -o $(T)/fwsel_hosttest
 	$(T)/fwsel_hosttest $(KDUMP) | tail -1
-	python3 -I tools/rtc_amltest.py | tail -1
+	python3 -I tools/rtc_amltest.py > $(T)/rtc_amltest.log; rc=$$?; tail -1 $(T)/rtc_amltest.log; exit $$rc
 
 qemu:
 	qemu/matrix.sh

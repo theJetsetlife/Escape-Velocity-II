@@ -24,6 +24,7 @@
 #include <Guid/EventGroup.h>
 #include <Guid/Ps4DirectbootInfo.h>
 #include <Guid/Ps4RtcMailbox.h>
+#include <Ps4RtcCounter.h>
 #include <Protocol/RealTimeClock.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
@@ -41,8 +42,6 @@
 #define GLUE_FUNCTION          4
 #define AEOLIA_GLUE_ID         0x90A1           // pci_ids.h PCI_DEVICE_ID_SONY_AEOLIA_PCIE
 #define BELIZE_GLUE_ID         0x90CC           // PCI_DEVICE_ID_SONY_BELIZE_PCIE (same RTC layout)
-#define COUNTER_READ_RETRIES   21               // two equal reads 100 us apart (as PS4 Linux sb-rtc.c)
-#define COUNTER_RETRY_DELAY    100
 
 /* the AML Field list of \_SB.PTAD (Ps4Dsdt.asl) relies on these offsets */
 STATIC_ASSERT (OFFSET_OF (PS4_RTC_MAILBOX, Signature) == 0x00, "mailbox layout: MSIG");
@@ -99,44 +98,6 @@ DaysFromCivil (
   return Era * 146097 + Doe - 719468;
 }
 
-/* The counter is four 32-bit registers holding one byte each, low byte first. */
-STATIC
-UINT32
-CounterRaw (
-  IN UINTN  Regs
-  )
-{
-  return (MmioRead32 (Regs) & 0xFF) | ((MmioRead32 (Regs + 4) & 0xFF) << 8) |
-         ((MmioRead32 (Regs + 8) & 0xFF) << 16) | ((MmioRead32 (Regs + 12) & 0xFF) << 24);
-}
-
-/* A value is accepted when two reads 100 us apart agree (no carry between the byte reads). */
-STATIC
-BOOLEAN
-CounterRead (
-  IN  UINTN   Regs,
-  OUT UINT32  *Value
-  )
-{
-  UINT32  Previous;
-  UINT32  Current;
-  UINTN   Retry;
-
-  Previous = CounterRaw (Regs);
-  for (Retry = 0; Retry < COUNTER_READ_RETRIES; Retry++) {
-    MicroSecondDelay (COUNTER_RETRY_DELAY);
-    Current = CounterRaw (Regs);
-    if (Current == Previous) {
-      *Value = Current;
-      return TRUE;
-    }
-
-    Previous = Current;
-  }
-
-  return FALSE;
-}
-
 /* Seconds of the platform clock without Offset: PS4_RTC_EPOCH + counter, or TSC seconds since start. */
 STATIC
 BOOLEAN
@@ -149,7 +110,7 @@ ClockNow (
   UINT64  Ns;
 
   if (mCounter != 0) {
-    if (!CounterRead (mCounter, &Ticks)) {
+    if (!Ps4RtcCounterRead (mCounter, &Ticks)) {
       return FALSE;
     }
 
@@ -224,7 +185,8 @@ Ps4SetTime (
   if ((Time == NULL) || (Time->Year < 1970) || (Time->Year > 9999) || (Time->Month < 1) ||
       (Time->Month > 12) || (Time->Day < 1) || (Time->Day > 31) || (Time->Hour > 23) ||
       (Time->Minute > 59) || (Time->Second > 59) || (Time->Nanosecond > 999999999) ||
-      ((Time->TimeZone != EFI_UNSPECIFIED_TIMEZONE) && ((Time->TimeZone < -1440) || (Time->TimeZone > 1440))))
+      ((Time->TimeZone != EFI_UNSPECIFIED_TIMEZONE) && ((Time->TimeZone < -1440) || (Time->TimeZone > 1440))) ||
+      ((Time->Daylight & ~(EFI_TIME_ADJUST_DAYLIGHT | EFI_TIME_IN_DAYLIGHT)) != 0))   // _SRT checks the same
   {
     return EFI_INVALID_PARAMETER;
   }
@@ -397,7 +359,7 @@ Ps4RtcEntryPoint (
   /* hardware counter */
   Bar2 = FindGlueBar2 ();
   if (Bar2 != 0) {
-    if (!CounterRead ((UINTN)(Bar2 + PS4_RTC_COUNTER_OFFSET), &Ticks) || (Ticks == MAX_UINT32)) {
+    if (!Ps4RtcCounterRead ((UINTN)(Bar2 + PS4_RTC_COUNTER_OFFSET), &Ticks)) {
       DEBUG ((DEBUG_WARN, "Ps4RtcDxe: RTC counter at %lx does not answer; TSC fallback\n", Bar2 + PS4_RTC_COUNTER_OFFSET));
     } else if (EFI_ERROR (Status = MapCounterForRuntime (Bar2 & ~(UINT64)EFI_PAGE_MASK))) {
       DEBUG ((DEBUG_WARN, "Ps4RtcDxe: cannot map RTC page %lx for runtime (%r); TSC fallback\n", Bar2, Status));

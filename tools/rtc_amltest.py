@@ -25,6 +25,9 @@ for unix in [1325376000, 1330473599, 1330473600, 1330559999, 1735689599, 1735689
 srt = [(2024, 2, 29, 23, 59, 59), (2000, 3, 1, 0, 0, 0), (2100, 2, 28, 12, 34, 56), (2026, 11, 20, 18, 0, 0),
        (1970, 1, 1, 0, 0, 0), (9999, 12, 31, 23, 59, 59)]
 bad = [(1969, 12, 31, 0, 0, 0), (2026, 13, 1, 0, 0, 0), (2026, 1, 0, 0, 0, 0), (2026, 1, 1, 24, 0, 0)]
+# (timezone word, daylight): rejected by _SRT like Ps4SetTime; and accepted edge values
+badtz = [(0x05A1, 0), (0xFA5F, 0), (0x7FFF, 0), (0x07FE, 0), (0x0000, 0x04), (0x07FF, 0x80)]
+goodtz = [(0x05A0, 3), (0xFA60, 0), (0xFE20, 1), (0x07FF, 2)]   # +1440, -1440, -480, unspecified
 
 def setcnt(c):
     return "".join("\\_SB.PTAD.CB%d = 0x%02X\n" % (i, (c >> (8 * i)) & 0xFF) for i in range(4))
@@ -63,6 +66,27 @@ for i, t in enumerate(bad):
     body.append("T1 = Buffer (0x10) { 0x%02X, 0x%02X, %d, %d, %d, %d, %d, 0, 0, 0, 0, 0, 0, 0, 0, 0 }"
                 % (t[0] & 0xFF, t[0] >> 8, *t[1:]))
     body.append("If (\\_SB.PTAD._SRT (T1) != 0xFFFFFFFF) { FAIL++ ; Debug = \"BAD%d\" }" % i)
+def tbuf(t, tz, dl):
+    return ("T1 = Buffer (0x10) { 0x%02X, 0x%02X, %d, %d, %d, %d, %d, 0, 0, 0, 0x%02X, 0x%02X, 0x%02X, 0, 0, 0 }"
+            % (t[0] & 0xFF, t[0] >> 8, *t[1:], tz & 0xFF, tz >> 8, dl))
+okt = (2026, 11, 20, 18, 0, 0)
+body.append(setcnt(0x0789ABCD) + "\\_SB.PTAD.MOFS = 0x1234")
+for i, (tz, dl) in enumerate(badtz):
+    body.append(tbuf(okt, tz, dl))
+    body.append("If (\\_SB.PTAD._SRT (T1) != 0xFFFFFFFF) { FAIL++ ; Debug = \"BADTZ%d\" }" % i)
+    body.append("If ((\\_SB.PTAD.MOFS != 0x1234) || (\\_SB.PTAD.MTZ != 2047)) { FAIL++ ; Debug = \"BADTZ%d kept\" }" % i)
+for i, (tz, dl) in enumerate(goodtz):
+    body.append(tbuf(okt, tz, dl))
+    body.append("If (\\_SB.PTAD._SRT (T1) != Zero) { FAIL++ ; Debug = \"TZ%d rc\" }" % i)
+    body.append(chk("TZ%d" % i, okt, tz=tz, dl=dl))
+    body.append("\\_SB.PTAD.MTZ = 2047\n\\_SB.PTAD.MDL = Zero\n\\_SB.PTAD.MOFS = 0x1234")
+# a register reading all ones (function no longer decoding): _GRT Valid = 0, _SRT fails, Offset kept
+for reg in range(4):
+    body.append(setcnt(0x0789ABCD) + "\\_SB.PTAD.CB%d = 0xFFFFFFFF" % reg)
+    body.append("T0 = \\_SB.PTAD._GRT ()\nIf (DerefOf (T0 [7]) != Zero) { FAIL++ ; Debug = \"DEAD%d GRT\" }" % reg)
+    body.append(tbuf(okt, 0x07FF, 0))
+    body.append("If (\\_SB.PTAD._SRT (T1) != 0xFFFFFFFF) { FAIL++ ; Debug = \"DEAD%d SRT\" }" % reg)
+    body.append("If (\\_SB.PTAD.MOFS != 0x1234) { FAIL++ ; Debug = \"DEAD%d kept\" }" % reg)
 body.append("\\_SB.PTAD.MFLG = Zero\nIf (\\_SB.PTAD._STA () != Zero) { FAIL++ ; Debug = \"STA0\" }")
 
 ssdt = """DefinitionBlock ("", "SSDT", 2, "PS4FW ", "RTCTEST ", 1)
@@ -104,6 +128,7 @@ with tempfile.TemporaryDirectory() as t:
     res = [l for l in log.splitlines() if "Evaluation of" in l or "Integer" in l or "Debug" in l or "Error" in l or "AE_" in l]
     print("\n".join(res[-30:]))
     ok = any("Integer" in l and "0000000000000000" in l for l in res) and "Evaluation of \\TRTC returned" in log
-    print("cases: %d _GRT, %d _SRT, %d rejected" % (len(cases), len(srt), len(bad)))
+    print("cases: %d _GRT, %d _SRT, %d rejected dates, %d rejected / %d accepted timezones, 4 dead registers"
+          % (len(cases), len(srt), len(bad), len(badtz), len(goodtz)))
     print("RESULT:", "PASS" if ok else "FAIL")
     sys.exit(0 if ok else 1)
