@@ -25,13 +25,33 @@ The receiver log shows the matched version, whether its row is verified, the pat
 bytes the hook displaces. A kernel that matches no row (or several) is refused.
 
 ## Status per version
-| Version(s) | Row | phys_avail | Stage behaviour |
-|---|---|---|---|
-| **9.00** | verified (kernel dump + hardware) | known (`0x2216a80`) | arms and takes over (hardware-proven) |
-| 5.05, 6.72, 7.00, 7.50, 8.00, 8.50, 9.03, 9.60, 10.00, 10.50, 11.00, 11.02, 11.50, 12.00, 12.50, 13.00, 13.02, 13.50, 13.52, 14.00, 14.02 | unverified (community offsets from the Linux loader) | unknown | recognised and checked, **not armed** (reports, then stops before the first write) |
+Rows come from the PS4 Linux loader. OpenGoldHEN's per-version kernel import tables (`reference/open-zip`,
+`assets/tables/ksdk_offsets_<ver>.bin`) are an independent second source: `tools/mkfwtable.py` compares
+`printf`, `kmem_alloc`, `kern_reboot` and `kernel_map` on every version both cover and fails on any
+disagreement. All 16 overlapping versions agree (80 of 80 values, 9.00 included). Point releases whose whole
+OpenGoldHEN import table equals a row's share that kernel layout and are matched to the row at run time.
 
-Versions that share a kernel with a listed one (for example 9.04 with 9.03, as the loader's comments note) are
-matched by the same row when their code is identical; otherwise they match no row and are refused.
+| Row | Also matches (same layout per OpenGoldHEN) | Second source | phys_avail | Stage behaviour |
+|---|---|---|---|---|
+| **9.00** | — | OpenGoldHEN agrees | known (`0x2216a80`) | **arms** (verified: kernel dump + hardware) |
+| 5.05, 7.50, 11.00, 11.02, 13.00 | — | OpenGoldHEN agrees | unknown | recognised, refused |
+| 6.72 | 6.71 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 8.00 | 8.01, 8.03 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 8.50 | 8.52 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 9.03 | 9.04 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 9.60 | 9.50, 9.51 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 10.00 | 10.01 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 10.50 | 10.70, 10.71 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 11.50 | 11.52 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 12.00 | 12.02 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 12.50 | 12.52 | OpenGoldHEN agrees | unknown | recognised, refused |
+| 7.00, 13.02, 13.50, 13.52, 14.00, 14.02 | — | loader only | unknown | recognised, refused |
+
+7.02, 7.51 and 7.55 (OpenGoldHEN versions) match no row's layout and are expected to be refused as
+unrecognised. Whatever the tables say, the run-time fingerprint decides which row (if any) a kernel matches.
+"Recognised, refused" = the stage checks and reports, then stops before the first write.
+OpenGoldHEN has no `phys_avail`, `icc_query_nowait`, `kmem_alloc_contig`, `pmap_extract`, `smp_rendezvous`,
+`wlanbt` or DMAP globals, so it confirms rows but cannot make another version armable.
 
 `phys_avail` matters because the memory map handed to EDK II marks RAM that OrbisOS still owns (firmware
 areas, GPU-shared memory) as reserved using OrbisOS's own free-memory list. Without it the stage would have to

@@ -7,6 +7,10 @@ dump and on hardware; every other row is marked unverified. phys_avail is not in
 only, so the stage recognises other versions but refuses to arm them (src/directboot/arm.c step 0).
 
 The 9.00 row must reproduce the hardware-proven constants below exactly, or generation fails.
+Cross-check: OpenGoldHEN's per-version kernel import tables (reference/open-zip, ksdk_offsets_<ver>.bin, 77 u32)
+are an independent source for printf, kmem_alloc, kern_reboot and kernel_map; any disagreement fails generation.
+Point releases whose whole OpenGoldHEN import table equals a row's are listed as "also" in that row's comment
+(same kernel layout; the stage's run-time fingerprint matches them to that row by itself).
     python3 tools/mkfwtable.py            (writes src/directboot/fwtable.h)
 """
 import os, re, sys
@@ -56,6 +60,23 @@ def parse_fwoff(path):
     return rows
 
 
+GH_DIR = os.path.join(ROOT, "reference/open-zip/OpenGoldHEN-main/assets/tables")
+GH_IDX = dict(printf=1, kmem_alloc=8, kern_reboot=14, kernel_map=62)        # include/goldhen/kernel.h
+
+
+def load_goldhen():
+    import struct
+    t = {}
+    if not os.path.isdir(GH_DIR):
+        return t
+    for f in os.listdir(GH_DIR):
+        m = re.match(r"ksdk_offsets_(\d+)\.bin$", f)
+        if m:
+            d = open(os.path.join(GH_DIR, f), "rb").read()
+            t[int(m.group(1))] = struct.unpack("<%dI" % (len(d) // 4), d)
+    return t
+
+
 def main():
     magic, notes = parse_magic(os.path.join(LDR, "magic.h"))
     fwoff = parse_fwoff(os.path.join(LDR, "fw_offsets.h"))
@@ -73,6 +94,16 @@ def main():
         if fwoff[v]["pstate"] != magic[v].get("kern_off_pstate_before_shutdown", fwoff[v]["pstate"]):
             sys.exit("pstate differs between magic.h and fw_offsets.h for %d" % v)
         out.append((v, row))
+    gh = load_goldhen()
+    also, agree = {}, {}
+    for v, row in out:
+        if v in gh:
+            for k, i in GH_IDX.items():
+                ours = magic[v].get("kern_off_printf") if k == "printf" else row[k]
+                if ours != gh[v][i]:
+                    sys.exit("OpenGoldHEN disagrees for %d.%02d %s: loader %#x, OpenGoldHEN %#x" % (v // 100, v % 100, k, ours, gh[v][i]))
+            agree[v] = True
+            also[v] = ["%d.%02d" % (o // 100, o % 100) for o in sorted(gh) if o not in dict(out) and gh[o] == gh[v]]
     r900 = dict(out)[900]
     bad = {k: (hex(r900[k]), hex(VERIFIED_900[k])) for k in VERIFIED_900 if r900[k] != VERIFIED_900[k]}
     if bad:
@@ -90,13 +121,17 @@ def main():
     for v, row in out:
         ex = EXTRA_900 if v == 900 else dict(phys_avail=0, gadget=0)
         vals = ", ".join("0x%x" % row[c] for c in cols)
-        L.append("    { %4d, %s, 0x%x, 0x%x, %s },   /* %d.%02d %s */" % (
+        info = []
+        if agree.get(v): info.append("OpenGoldHEN agrees")
+        if also.get(v): info.append("also " + " ".join(also[v]))
+        L.append("    { %4d, %s, 0x%x, 0x%x, %s },   /* %d.%02d%s */" % (
             v, "DB_FW_VERIFIED" if v == 900 else "0", ex["gadget"], ex["phys_avail"], vals,
-            v // 100, v % 100, notes.get(v, "")))
+            v // 100, v % 100, (" - " + "; ".join(info)) if info else ""))
     L += ["};", "#define DB_FW_COUNT (sizeof db_fw_table / sizeof db_fw_table[0])", "", "#endif", ""]
     open(OUT, "w").write("\n".join(L))
-    print("%s: %d versions (%s)" % (os.path.relpath(OUT, ROOT), len(out),
-                                    " ".join("%d.%02d" % (v // 100, v % 100) for v, _ in out)))
+    print("%s: %d versions (%s); OpenGoldHEN cross-check: %d rows agree; %d more point releases share a row's layout" % (
+        os.path.relpath(OUT, ROOT), len(out), " ".join("%d.%02d" % (v // 100, v % 100) for v, _ in out),
+        len(agree), sum(len(a) for a in also.values())))
 
 
 if __name__ == "__main__":
