@@ -10,3 +10,6 @@
 !/prebuilt/**/*.elf
 .pcaddr
 __pycache__/
+
+# reference material: local only, partly proprietary (Sony SDK, Sony firmware tables) - never publish
+/reference/
