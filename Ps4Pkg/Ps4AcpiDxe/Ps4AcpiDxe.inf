@@ -1,0 +1,40 @@
+## @file
+#  Ps4AcpiDxe - fix up the bootloader ACPI tables for OS loaders (FACS into ACPI NVS; see Ps4AcpiDxe.c).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4AcpiDxe
+  FILE_GUID                      = 6F0B3E52-9C1D-4A8E-B4D7-2E5A91C7F304
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ps4AcpiEntryPoint
+
+[Sources]
+  Ps4AcpiDxe.c
+  Ps4Dsdt.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  HobLib
+  IoLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+
+[Guids]
+  gEfiAcpi20TableGuid
+  gPs4DirectbootInfoGuid
+
+[Protocols]
+  gEfiAcpiTableProtocolGuid                     ## CONSUMES (ordering: tables from the HOB are installed)
+
+[Depex]
+  gEfiAcpiTableProtocolGuid

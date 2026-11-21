@@ -1,0 +1,44 @@
+## @file
+#  Ps4Ds4Dxe - USB-cabled DualShock 4 (054c:05c4 / 09cc / 0ba0) as a UEFI keyboard
+#  (see Ps4Ds4Dxe.c; report parsing in Ds4Report.c, host-tested by tools/ds4_hosttest.c).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4Ds4Dxe
+  FILE_GUID                      = ABC35C28-0F1C-496F-A3A0-86E8A1B4031D
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ps4Ds4EntryPoint
+
+[Sources]
+  Ps4Ds4Dxe.c
+  Ds4Report.c
+  Ds4Report.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  DevicePathLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+  UefiRuntimeServicesTableLib
+  UefiUsbLib
+
+[Guids]
+  gEfiGlobalVariableGuid                        ## SOMETIMES_PRODUCES ## Variable:L"ConIn"
+
+[Protocols]
+  gEfiUsbIoProtocolGuid                         ## TO_START
+  gEfiSimpleTextInProtocolGuid                  ## BY_START
+  gEfiSimpleTextInputExProtocolGuid             ## BY_START
+
+[Depex]
+  gEfiVariableArchProtocolGuid AND gEfiVariableWriteArchProtocolGuid

@@ -1,0 +1,65 @@
+## @file
+#  Ps4LogDxe - "ps4log" Shell command + ReadyToBoot auto-save: boot log, hardware dump and
+#  LAN/DHCP/DNS/PXE tests in one file on a USB stick (see Ps4LogDxe.c).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4LogDxe
+  FILE_GUID                      = 2CD71CCE-AB81-4BD8-AD5A-A3134029F88A
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ps4LogEntryPoint
+
+[Sources]
+  Ps4Log.h
+  Ps4LogDxe.c
+  Report.c
+  Net.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  DevicePathLib
+  HobLib
+  IoLib
+  MemoryAllocationLib
+  PrintLib
+  Ps4UartLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+  UefiRuntimeServicesTableLib
+
+[Guids]
+  gEfiAcpi20TableGuid
+  gEfiEventReadyToBootGuid
+  gEfiSmbiosTableGuid
+  gEfiSmbios3TableGuid
+  gUefiAcpiBoardInfoGuid
+  gPs4DirectbootInfoGuid
+
+[Protocols]
+  gEfiShellDynamicCommandProtocolGuid           ## PRODUCES
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiBlockIoProtocolGuid
+  gEfiGraphicsOutputProtocolGuid
+  gEfiSimpleNetworkProtocolGuid
+  gEfiSimpleTextInProtocolGuid
+  gEfiSerialIoProtocolGuid
+  gEfiUsbIoProtocolGuid
+  gEfiIp4Config2ProtocolGuid
+  gEfiDns4ServiceBindingProtocolGuid
+  gEfiDns4ProtocolGuid
+  gEfiPxeBaseCodeProtocolGuid
+  gEfiLoadFileProtocolGuid
+
+[Depex]
+  TRUE

@@ -1,0 +1,1 @@
+source: OpenCorePkg 1.0.8 Platform/OpenNtfsDxe (BSD-3-Clause, (c) 2022 Mikhail Krichanov, 2025 Pavel Naberezhnev), copied from macos-ps4/opencore/OpenCorePkg-1.0.8; change: OcStriCmp -> local Ps4StriCmp (identical logic), no OpenCorePkg dependency

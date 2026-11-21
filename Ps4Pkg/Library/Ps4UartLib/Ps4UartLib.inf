@@ -1,0 +1,22 @@
+## @file
+#  Ps4UartLib - polled 16550 access to the PS4 southbridge UART (COM1 off the PS4, for QEMU).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4UartLib
+  FILE_GUID                      = A78377D5-A768-4B73-8F02-22EC877A7320
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = Ps4UartLib
+
+[Sources]
+  Ps4UartLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  IoLib

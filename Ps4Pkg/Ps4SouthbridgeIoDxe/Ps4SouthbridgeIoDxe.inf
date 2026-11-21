@@ -1,0 +1,45 @@
+## @file
+#  Ps4SouthbridgeIoDxe - register the PS4 southbridge xHCI/AHCI/SDHCI controllers (and class-matched
+#  controllers of other vendors) as non-discoverable MMIO devices, reading PCI config only
+#  (see Ps4SouthbridgeIoDxe.c).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4SouthbridgeIoDxe
+  FILE_GUID                      = D173ABB6-400C-49B0-B049-348D5E4DE2D7
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ps4SouthbridgeIoEntryPoint
+
+[Sources]
+  Ps4SouthbridgeIoDxe.c
+  Ps4PciIoShim.c
+  Ps4PciIoShim.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  DevicePathLib
+  HobLib
+  IoLib
+  MemoryAllocationLib
+  NonDiscoverableDeviceRegistrationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+
+[Guids]
+  gUefiAcpiBoardInfoGuid                        ## CONSUMES ## HOB
+
+[Protocols]
+  gEfiPciIoProtocolGuid                         ## PRODUCES ## GbE shim
+  gEfiDevicePathProtocolGuid                    ## PRODUCES ## GbE shim
+
+[Depex]
+  TRUE

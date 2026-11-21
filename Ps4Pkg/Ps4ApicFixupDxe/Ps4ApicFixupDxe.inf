@@ -1,0 +1,34 @@
+## @file
+#  Ps4ApicFixupDxe - clear in-service / pending local APIC vectors left by the OrbisOS takeover so
+#  the EDK II timer interrupt (vector 0x20) is delivered (see Ps4ApicFixupDxe.c).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4ApicFixupDxe
+  FILE_GUID                      = 3F0E6C42-9B1D-4E57-A8C3-5D2B7E91F604
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ps4ApicFixupEntryPoint
+
+[Sources]
+  Ps4ApicFixupDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  IoLib
+  LocalApicLib
+  TimerLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gEfiCpuArchProtocolGuid                       ## CONSUMES
+
+[Depex]
+  gEfiCpuArchProtocolGuid AND gEfiTimerArchProtocolGuid

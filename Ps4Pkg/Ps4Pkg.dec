@@ -1,0 +1,32 @@
+## @file
+#  Ps4Pkg - PS4 (Fat, Aeolia, fw 9.00) platform pieces for the EDK II Universal Payload.
+#  Written for the Directboot flow (rebuild/src/directboot): the stage hands over with a HOB
+#  list that includes gPs4DirectbootInfoGuid. Upstream edk2 files are never modified.
+##
+
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = Ps4Pkg
+  PACKAGE_GUID                   = 39911CBA-6CFA-40E6-8D8C-37153929D02A
+  PACKAGE_VERSION                = 0.1
+
+[Includes]
+  Include
+
+[LibraryClasses]
+  ## Polled 16550 on the southbridge UART (COM1 off the PS4)
+  Ps4UartLib|Include/Library/Ps4UartLib.h
+
+[Guids]
+  ## Ps4Pkg/Include/Guid/Ps4DirectbootInfo.h (layout must match src/upl_hob.h)
+  gPs4DirectbootInfoGuid         = { 0x019f07b6, 0x0a23, 0x4609, { 0xb8, 0x01, 0xa2, 0x04, 0x0c, 0x17, 0x3a, 0x21 } }
+  ## Ps4GopDxe: vendor device path node of the GOP handle (no PCI, 2026-11-20)
+  gPs4GopDevicePathGuid          = { 0x8e7d8be5, 0xddb7, 0x4c01, { 0x85, 0x10, 0xd9, 0x3f, 0xea, 0x76, 0xb3, 0x43 } }
+  gPs4TokenSpaceGuid             = { 0xccfc9f51, 0x36e2, 0x4122, { 0xa9, 0x29, 0x59, 0xe2, 0x04, 0x30, 0xed, 0xf1 } }
+
+[PcdsFixedAtBuild]
+  ## TSC frequency (fixed, so every module type uses the same value; the stage logs its own measurement).
+  #  1593.719 MHz = what Linux measured on this Fat (macos-ps4/dumps/fat-aeolia dmesg).
+  gPs4TokenSpaceGuid.PcdPs4TscHz|1593719000|UINT64|0x00000001
+  ## RTC seed (seconds since 1970) when the HOB carries none.
+  gPs4TokenSpaceGuid.PcdPs4RtcFallbackUnixTime|1795000000|UINT64|0x00000002

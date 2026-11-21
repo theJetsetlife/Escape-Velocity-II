@@ -1,0 +1,45 @@
+## @file
+#  Ps4GopDxe - GOP on the PS4 scanout surface described by gEfiGraphicsInfoHobGuid, installed on
+#  its own handle (vendor device path) without PCI enumeration (see Ps4GopDxe.c).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4GopDxe
+  FILE_GUID                      = 477254DC-C006-48EC-B861-FED80A4A8FDD
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 2.0
+  ENTRY_POINT                    = Ps4GopEntryPoint
+
+[Sources]
+  Ps4GopDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  DevicePathLib
+  FrameBufferBltLib
+  HobLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+  UefiLib
+  UefiDriverEntryPoint
+
+[Guids]
+  gEfiGraphicsInfoHobGuid                       ## CONSUMES ## HOB
+  gEfiGlobalVariableGuid                        ## SOMETIMES_PRODUCES ## Variable:L"ConOut" L"ErrOut"
+  gPs4GopDevicePathGuid                         ## PRODUCES ## vendor device path node
+
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid                ## PRODUCES
+  gEfiDevicePathProtocolGuid                    ## PRODUCES
+
+[Depex]
+  gEfiVariableArchProtocolGuid AND gEfiVariableWriteArchProtocolGuid

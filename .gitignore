@@ -1,0 +1,12 @@
+# fetched / generated
+/edk2/
+/out/
+/qemu/out/
+/reports/
+/backups/
+/server/.env
+*.o
+*.elf
+!/prebuilt/**/*.elf
+.pcaddr
+__pycache__/

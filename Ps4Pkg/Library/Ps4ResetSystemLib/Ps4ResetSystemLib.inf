@@ -1,0 +1,23 @@
+## @file
+#  ResetSystemLib for the PS4: no ACPI reset register (Sony FADT ResetReg = 0), no 0xCF9.
+#  Reset/power-off go to syscon over ICC on this console (not implemented yet): log and park.
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4ResetSystemLib
+  FILE_GUID                      = 64AB5627-D945-459E-9CF7-64259EB4A18A
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = ResetSystemLib
+
+[Sources]
+  Ps4ResetSystemLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib

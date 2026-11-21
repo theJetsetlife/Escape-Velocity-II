@@ -1,0 +1,29 @@
+# PC side of a PS4 run (see docs/HARDWARE.md). Settings come from server/.env (copy .env.example).
+#   webkitty : serves your WebKitty checkout (unmodified except the GoldHEN payload slot) to the PS4 browser
+#   receiver : receives the stage's progress reports and serves it the UEFI payload (out/upl-ps4.elf)
+services:
+  webkitty:
+    image: python:3.13-alpine
+    container_name: webkitty
+    working_dir: /site
+    volumes:
+      - ${WEBKITTY_DIR:?set WEBKITTY_DIR in server/.env}:/site:ro
+      - ../tools:/tools:ro
+    ports:
+      - "${WEB_PORT:-9898}:8000"     # PS4 browser: http://<PC_IP>:9898/
+    # stock http.server + manifests carry the payload hash so the PS4 appcache refetches a changed slot
+    command: ["python3", "-u", "-I", "/tools/webkitty_serve.py", "/site", "8000"]
+    restart: unless-stopped
+
+  receiver:
+    image: python:3.13-alpine
+    container_name: diag-receiver
+    ports:
+      - "${PC_PORT:-9031}:9031"
+    volumes:
+      - ../tools:/tools:ro
+      - ../reports:/reports
+      - ../out:/upl:ro
+    command: ["python3", "-u", "-I", "/tools/diag_recv.py", "listen", "--port", "9031",
+              "--web-port", "${WEB_PORT:-9898}", "--out", "/reports", "--upl", "/upl/upl-ps4.elf"]
+    restart: unless-stopped

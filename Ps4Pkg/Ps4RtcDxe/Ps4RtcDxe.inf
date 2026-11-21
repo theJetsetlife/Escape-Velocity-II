@@ -1,0 +1,40 @@
+## @file
+#  Real Time Clock for the PS4 (no CMOS): OrbisOS time from the directboot HOB + TSC.
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4RtcDxe
+  FILE_GUID                      = 318320D3-3F46-4600-BB3D-4132FC2C33D9
+  MODULE_TYPE                    = DXE_RUNTIME_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ps4RtcEntryPoint
+
+[Sources]
+  Ps4RtcDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  HobLib
+  PcdLib
+  TimerLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiRuntimeServicesTableLib
+
+[Guids]
+  gPs4DirectbootInfoGuid                        ## SOMETIMES_CONSUMES ## HOB
+
+[Protocols]
+  gEfiRealTimeClockArchProtocolGuid             ## PRODUCES
+
+[Pcd]
+  gPs4TokenSpaceGuid.PcdPs4RtcFallbackUnixTime  ## CONSUMES
+
+[Depex]
+  TRUE

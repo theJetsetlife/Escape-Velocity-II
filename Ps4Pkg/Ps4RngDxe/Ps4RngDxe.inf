@@ -1,0 +1,35 @@
+## @file
+#  Ps4RngDxe - non-cryptographic EFI_RNG_PROTOCOL (TSC-seeded SplitMix64) so NetworkPkg's DxeRngLib
+#  depex is satisfied on the RDRAND-less PS4 CPU (see Ps4RngDxe.c).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4RngDxe
+  FILE_GUID                      = B7E30564-2C80-4CB5-BE3F-2F9FF94F1EF5
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ps4RngEntryPoint
+
+[Sources]
+  Ps4RngDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+
+[Guids]
+  gEdkiiRngAlgorithmUnSafe                      ## PRODUCES ## the only advertised algorithm
+
+[Protocols]
+  gEfiRngProtocolGuid                           ## PRODUCES
+
+[Depex]
+  TRUE

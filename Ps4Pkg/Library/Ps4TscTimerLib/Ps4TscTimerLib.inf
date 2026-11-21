@@ -1,0 +1,25 @@
+## @file
+#  TimerLib on the invariant TSC (PS4 Fat: no CPUID 0x15, PM timer not trusted).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4TscTimerLib
+  FILE_GUID                      = 2017FB34-5046-4A1B-93DA-BCE0FE8B8E6D
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = TimerLib
+
+[Sources]
+  Ps4TscTimerLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  PcdLib
+
+[Pcd]
+  gPs4TokenSpaceGuid.PcdPs4TscHz                ## CONSUMES

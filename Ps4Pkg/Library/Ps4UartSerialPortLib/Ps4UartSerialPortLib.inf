@@ -1,0 +1,21 @@
+## @file
+#  Ps4UartSerialPortLib - SerialPortLib on the southbridge UART only (for SerialDxe/TerminalDxe).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4UartSerialPortLib
+  FILE_GUID                      = 2AFC2332-54D5-428C-B164-0B196EFEA922
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = SerialPortLib
+
+[Sources]
+  Ps4UartSerialPortLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  Ps4UartLib

@@ -1,0 +1,22 @@
+## @file
+#  SerialPortLib -> text on the directboot framebuffer (the PS4 has no legacy UART).
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ps4FbSerialPortLib
+  FILE_GUID                      = 6D3A01FC-3215-44ED-B116-A91AED9414B3
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = SerialPortLib
+
+[Sources]
+  Ps4FbSerialPortLib.c
+  Font8x19.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  Ps4Pkg/Ps4Pkg.dec
+
+[LibraryClasses]
+  Ps4UartLib
