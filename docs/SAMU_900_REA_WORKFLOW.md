@@ -14,8 +14,10 @@ Official project: https://github.com/morluto/rea . Use only approved installatio
 Set up the Codex MCP integration from a trusted directory:
 
 ```sh
-npx rea-agents@latest setup --client codex
-npx rea-agents@latest doctor --client codex --json
+# Choose and audit a fixed release; do NOT silently run @latest.
+REA_VERSION='<audited-version>'
+npx --yes "rea-agents@${REA_VERSION}" setup --client codex
+npx --yes "rea-agents@${REA_VERSION}" doctor --client codex --json
 ```
 
 Review setup changes, restart Codex, and confirm Ghidra is the configured analysis backend. If either operation fails, do not claim a successful REA verification.
@@ -31,7 +33,7 @@ Each claim needs: firmware dump SHA-256; virtual address; instruction bytes or a
 ## Independent offline verification gate
 
 ```sh
-make -C tools/samu-research test
+make -C tools/samu-research cleanroom
 make -C tools/samu-research verify-kernel KDUMP='/absolute/path/to/kernel(1).bin'
 ```
 

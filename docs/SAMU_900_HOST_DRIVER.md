@@ -86,3 +86,7 @@ full decompilation or live SAMU communication.
 For a subsequent Ghidra-assisted reanalysis using **REA (Reverse Engineer
 Anything)**, see `docs/SAMU_900_REA_WORKFLOW.md`. No completed REA session is
 claimed in this version.
+
+## Isolated test harness (2026-11-22)
+
+A separate research-only `cleanroom` target now exercises the ELF verifier, five cited relative-branch edges, a synthetic message host model, and malformed invented inputs under AddressSanitizer/UBSan and fuzzing. This adds evidence integrity and tooling hygiene; it does not expand the confirmed capabilities of SAMU or prove a hardware vulnerability. See `docs/SAMU_900_SECURITY_AUDIT.md`.

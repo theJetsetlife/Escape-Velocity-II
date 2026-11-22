@@ -1,126 +1,213 @@
 {
-  "input_size": 44040192,
-  "sha256": "8fa5250621bf30bdb21730108f5b35c103bc898def60cf91417f0237cd3be0b3",
-  "sha256_match": true,
-  "elf_entry": "0xffffffff996393c0",
-  "elf_segments": [],
   "checks": {
-    "sender_prologue": {
-      "runtime_address": "0xffffffff999e4ee0",
-      "file_offset": "0x61cee0",
-      "verified": true,
-      "actual_bytes": "554889e5"
-    },
-    "sender_max_4096": {
-      "runtime_address": "0xffffffff999e4eed",
-      "file_offset": "0x61ceed",
-      "verified": true,
-      "actual_bytes": "81fe00100000"
-    },
-    "sender_min_24": {
-      "runtime_address": "0xffffffff999e4ef5",
-      "file_offset": "0x61cef5",
-      "verified": true,
-      "actual_bytes": "83f917"
-    },
-    "message_copy_offset": {
-      "runtime_address": "0xffffffff999e4f53",
-      "file_offset": "0x61cf53",
-      "verified": true,
-      "actual_bytes": "4801df"
-    },
-    "message_zero_qword": {
-      "runtime_address": "0xffffffff999e4f62",
-      "file_offset": "0x61cf62",
-      "verified": true,
-      "actual_bytes": "48c7801010000000000000"
-    },
-    "no_copyback": {
-      "runtime_address": "0xffffffff999e4ed4",
-      "file_offset": "0x61ced4",
-      "verified": true,
-      "actual_bytes": "31d2"
-    },
-    "yes_copyback": {
-      "runtime_address": "0xffffffff999e4fd4",
-      "file_offset": "0x61cfd4",
-      "verified": true,
-      "actual_bytes": "ba01000000"
-    },
-    "service_size_max": {
-      "runtime_address": "0xffffffff999f9074",
-      "file_offset": "0x631074",
-      "verified": true,
-      "actual_bytes": "81fea9000000"
-    },
-    "init_allocation_1MiB": {
-      "runtime_address": "0xffffffff999e4349",
-      "file_offset": "0x61c349",
-      "verified": true,
-      "actual_bytes": "bf00001000"
-    },
-    "init_alignment": {
-      "runtime_address": "0xffffffff999e4378",
-      "file_offset": "0x61c378",
-      "verified": true,
-      "actual_bytes": "a9ff3f0000"
-    },
-    "indexed_selector_offset": {
-      "runtime_address": "0xffffffff99884979",
-      "file_offset": "0x4bc979",
-      "verified": true,
-      "actual_bytes": "ba00200200"
-    },
-    "indexed_data_offset": {
-      "runtime_address": "0xffffffff99884997",
-      "file_offset": "0x4bc997",
-      "verified": true,
-      "actual_bytes": "ba04200200"
-    },
-    "submit_index_34": {
-      "runtime_address": "0xffffffff999e4a2d",
-      "file_offset": "0x61ca2d",
-      "verified": true,
-      "actual_bytes": "bf34000000"
-    },
-    "submit_index_33": {
-      "runtime_address": "0xffffffff999e4a3d",
-      "file_offset": "0x61ca3d",
-      "verified": true,
-      "actual_bytes": "bf33000000"
-    },
-    "submit_start_index_32": {
-      "runtime_address": "0xffffffff999e4a49",
-      "file_offset": "0x61ca49",
-      "verified": true,
-      "actual_bytes": "bf32000000"
-    },
-    "submit_status_index_4a": {
-      "runtime_address": "0xffffffff999e4a58",
-      "file_offset": "0x61ca58",
-      "verified": true,
-      "actual_bytes": "bf4a000000"
-    },
     "dispatch_13_entries": {
-      "runtime_address": "0xffffffff999e45c1",
+      "actual_bytes": "833f0d",
       "file_offset": "0x61c5c1",
-      "verified": true,
-      "actual_bytes": "833f0d"
+      "runtime_address": "0xffffffff999e45c1",
+      "segment": 2,
+      "verified": true
     },
     "dispatch_callback_call": {
-      "runtime_address": "0xffffffff999e464e",
+      "actual_bytes": "41ffd5",
       "file_offset": "0x61c64e",
-      "verified": true,
-      "actual_bytes": "41ffd5"
+      "runtime_address": "0xffffffff999e464e",
+      "segment": 2,
+      "verified": true
+    },
+    "indexed_data_offset": {
+      "actual_bytes": "ba04200200",
+      "file_offset": "0x4bc997",
+      "runtime_address": "0xffffffff99884997",
+      "segment": 2,
+      "verified": true
+    },
+    "indexed_selector_offset": {
+      "actual_bytes": "ba00200200",
+      "file_offset": "0x4bc979",
+      "runtime_address": "0xffffffff99884979",
+      "segment": 2,
+      "verified": true
+    },
+    "init_alignment": {
+      "actual_bytes": "a9ff3f0000",
+      "file_offset": "0x61c378",
+      "runtime_address": "0xffffffff999e4378",
+      "segment": 2,
+      "verified": true
+    },
+    "init_allocation_1MiB": {
+      "actual_bytes": "bf00001000",
+      "file_offset": "0x61c349",
+      "runtime_address": "0xffffffff999e4349",
+      "segment": 2,
+      "verified": true
+    },
+    "message_copy_offset": {
+      "actual_bytes": "4801df",
+      "file_offset": "0x61cf53",
+      "runtime_address": "0xffffffff999e4f53",
+      "segment": 2,
+      "verified": true
+    },
+    "message_zero_qword": {
+      "actual_bytes": "48c7801010000000000000",
+      "file_offset": "0x61cf62",
+      "runtime_address": "0xffffffff999e4f62",
+      "segment": 2,
+      "verified": true
+    },
+    "no_copyback": {
+      "actual_bytes": "31d2",
+      "file_offset": "0x61ced4",
+      "runtime_address": "0xffffffff999e4ed4",
+      "segment": 2,
+      "verified": true
+    },
+    "sender_max_4096": {
+      "actual_bytes": "81fe00100000",
+      "file_offset": "0x61ceed",
+      "runtime_address": "0xffffffff999e4eed",
+      "segment": 2,
+      "verified": true
+    },
+    "sender_min_24": {
+      "actual_bytes": "83f917",
+      "file_offset": "0x61cef5",
+      "runtime_address": "0xffffffff999e4ef5",
+      "segment": 2,
+      "verified": true
+    },
+    "sender_prologue": {
+      "actual_bytes": "554889e5",
+      "file_offset": "0x61cee0",
+      "runtime_address": "0xffffffff999e4ee0",
+      "segment": 2,
+      "verified": true
+    },
+    "service_size_max": {
+      "actual_bytes": "81fea9000000",
+      "file_offset": "0x631074",
+      "runtime_address": "0xffffffff999f9074",
+      "segment": 2,
+      "verified": true
     },
     "service_to_sender": {
-      "runtime_address": "0xffffffff999f9197",
+      "actual_bytes": "e834bdfeff",
       "file_offset": "0x631197",
-      "verified": true,
-      "actual_bytes": "e834bdfeff"
+      "runtime_address": "0xffffffff999f9197",
+      "segment": 2,
+      "verified": true
+    },
+    "submit_index_33": {
+      "actual_bytes": "bf33000000",
+      "file_offset": "0x61ca3d",
+      "runtime_address": "0xffffffff999e4a3d",
+      "segment": 2,
+      "verified": true
+    },
+    "submit_index_34": {
+      "actual_bytes": "bf34000000",
+      "file_offset": "0x61ca2d",
+      "runtime_address": "0xffffffff999e4a2d",
+      "segment": 2,
+      "verified": true
+    },
+    "submit_start_index_32": {
+      "actual_bytes": "bf32000000",
+      "file_offset": "0x61ca49",
+      "runtime_address": "0xffffffff999e4a49",
+      "segment": 2,
+      "verified": true
+    },
+    "submit_status_index_4a": {
+      "actual_bytes": "bf4a000000",
+      "file_offset": "0x61ca58",
+      "runtime_address": "0xffffffff999e4a58",
+      "segment": 2,
+      "verified": true
+    },
+    "yes_copyback": {
+      "actual_bytes": "ba01000000",
+      "file_offset": "0x61cfd4",
+      "runtime_address": "0xffffffff999e4fd4",
+      "segment": 2,
+      "verified": true
     }
   },
+  "elf_entry": "0xffffffff996393c0",
+  "elf_segments": [
+    {
+      "align": 8,
+      "filesz": 336,
+      "flags": 4,
+      "index": 0,
+      "memsz": 336,
+      "offset": 64,
+      "type": 6,
+      "vaddr": "0xffffffff993c8040"
+    },
+    {
+      "align": 1,
+      "filesz": 7,
+      "flags": 4,
+      "index": 1,
+      "memsz": 7,
+      "offset": 400,
+      "type": 3,
+      "vaddr": "0xffffffff993c8190"
+    },
+    {
+      "align": 2097152,
+      "filesz": 13623480,
+      "flags": 5,
+      "index": 2,
+      "memsz": 13623480,
+      "offset": 0,
+      "type": 1,
+      "vaddr": "0xffffffff993c8000"
+    },
+    {
+      "align": 2097152,
+      "filesz": 134064,
+      "flags": 4,
+      "index": 3,
+      "memsz": 2097152,
+      "offset": 13627392,
+      "type": 1627389968,
+      "vaddr": "0xffffffff9a4c7000"
+    },
+    {
+      "align": 2097152,
+      "filesz": 6317648,
+      "flags": 6,
+      "index": 4,
+      "memsz": 19923504,
+      "offset": 13762560,
+      "type": 1,
+      "vaddr": "0xffffffff9a8e8000"
+    },
+    {
+      "align": 8,
+      "filesz": 272,
+      "flags": 6,
+      "index": 5,
+      "memsz": 272,
+      "offset": 13623208,
+      "type": 2,
+      "vaddr": "0xffffffff9a0c5fa8"
+    }
+  ],
+  "entry_executable": true,
+  "expected_base_match": true,
+  "expected_entry_match": true,
+  "input_size": 44040192,
+  "pass_all": true,
   "passed": 19,
-  "total": 19,
-  "pass_all": true
+  "program_header_count": 6,
+  "provenance": "User-supplied PS4 9.00 kernel; offline, read-only check",
+  "report_version": 2,
+  "scope": "specific captured host executable segments only",
+  "sha256": "8fa5250621bf30bdb21730108f5b35c103bc898def60cf91417f0237cd3be0b3",
+  "sha256_match": true,
+  "total": 19
 }

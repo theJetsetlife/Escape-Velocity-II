@@ -44,6 +44,14 @@ static int32_t send_msg_model(struct sbl_host_model *state, void *msg,
         len > state->host_buffer_bytes - MESSAGE_OFFSET ||
         state->mapped_gpu_base > UINT64_MAX - MESSAGE_OFFSET)
         return ERR_INVAL;
+    /* Reject overlapping source and mock device storage. This is a safety
+     * rule for the test model, not an assertion about Sony's original ABI. */
+    const uintptr_t src = (uintptr_t)msg;
+    const uintptr_t arena = (uintptr_t)state->host_buffer;
+    if (len > UINTPTR_MAX - src || state->host_buffer_bytes > UINTPTR_MAX - arena)
+        return ERR_INVAL;
+    if (src < arena + state->host_buffer_bytes && arena < src + len)
+        return ERR_INVAL;
     memcpy(state->host_buffer + MESSAGE_OFFSET, msg, len);
     memset(state->host_buffer + MESSAGE_QWORD_OFFSET, 0, 8);
     state->on_submit(state, state->mapped_gpu_base + MESSAGE_OFFSET, state->opaque);
@@ -112,6 +120,9 @@ int main(void)
                 "null context rejected");
     assert_true(send_msg_model(&state, NULL, 32, false) == ERR_INVAL,
                 "null message rejected");
+    assert_true(send_msg_model(&state, state.host_buffer + MESSAGE_OFFSET + 1,
+                               32, true) == ERR_INVAL,
+                "overlapping synthetic message rejected");
     state.host_buffer_bytes = MESSAGE_OFFSET + 23;
     assert_true(send_msg_model(&state, message, 32, false) == ERR_INVAL,
                 "insufficient host buffer rejected");
@@ -119,7 +130,7 @@ int main(void)
     state.mapped_gpu_base = UINT64_MAX;
     assert_true(send_msg_model(&state, message, 32, false) == ERR_INVAL,
                 "GPUVA overflow rejected");
-    puts("PASS: 13 offline host-model assertions");
+    puts("PASS: 14 offline host-model assertions");
     return 0;
 }
 #endif

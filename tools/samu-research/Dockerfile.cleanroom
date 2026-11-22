@@ -1,0 +1,13 @@
+# Build only from tools/samu-research/ as context; .dockerignore excludes binaries.
+# Toolchain network access occurs only during image build, never during a test run.
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive PYTHONDONTWRITEBYTECODE=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    clang make python3 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /lab/tools/samu-research/.build && chown -R 65532:65532 /lab
+COPY --chown=65532:65532 . /lab/tools/samu-research
+WORKDIR /lab/tools/samu-research
+USER 65532:65532
+# No source files outside this small build context; guard scans this module.
+CMD ["sh", "-c", "make test sanitizers fuzz static-analysis && python3 cleanroom_guard.py /lab/tools/samu-research"]

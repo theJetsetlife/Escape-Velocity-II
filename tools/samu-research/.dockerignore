@@ -1,0 +1,10 @@
+**
+!Makefile
+!*.c
+!*.h
+!*.py
+!*.md
+!*.json
+!*.csv
+!.dockerignore
+!Dockerfile.cleanroom

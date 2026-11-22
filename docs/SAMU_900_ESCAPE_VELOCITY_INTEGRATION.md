@@ -4,16 +4,15 @@
 
 The public `main` README (observed 2026-11-22) defines `src/directboot/` for native Orbis-to-EDK II takeover, `Ps4Pkg/` for UEFI code, `src/diag/` and `src/k0probe/` for earlier 9.00 diagnostics, `tools/` for host utilities, `docs/` for engineering notes, and `prebuilt/hw-verified/` for known hardware-proven artifacts.
 
-**This overlay intentionally adds only `tools/samu-research/` and `docs/` files.** It does not change the stage, HAL, firmware-version table, UEFI DSC/FDF, or prebuilt binaries.
+**This research branch adds only `tools/samu-research/`, `.github/workflows/samu-cleanroom.yml` and `docs/` files.** It does not change the stage, HAL, firmware-version table, UEFI DSC/FDF, or prebuilt binaries.
 
 ## Installation
 
 From your workstation checkout:
 
 ```sh
-unzip EVII_SAMU_900_Research_Overlay.zip -d /path/to/Escape-Velocity-II
 cd /path/to/Escape-Velocity-II
-make -C tools/samu-research test
+make -C tools/samu-research cleanroom
 make -C tools/samu-research verify-kernel KDUMP='/path/to/kernel(1).bin'
 ```
 
@@ -30,7 +29,7 @@ Before enabling hardware I/O, cross-check the repository's `HANDOFF.md`, driver 
 
 ## Limitations of this integration
 
-The public GitHub repository README and HANDOFF were inspected through a GitHub connection; no complete local checkout was built. Therefore this is a **copy-in offline overlay**, not a source-merged PR or demonstration of a successful EDK II compilation. Repo-specific HAL interfaces and device initialization require review against a local checkout before writing EFI code.
+The repository README and HANDOFF were inspected using the connected GitHub repository. This is a **reviewable, research-only branch**; no EDK II build or actual console execution of a SAMU driver is claimed. Repo-specific HAL interfaces and device initialization still require independent inspection before any EFI code is proposed.
 
 ## REA follow-up
 
