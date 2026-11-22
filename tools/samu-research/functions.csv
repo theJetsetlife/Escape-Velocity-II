@@ -1,0 +1,13 @@
+runtime_va,proposed_symbol,confidence,role
+0xffffffff999f9060,SblServiceRequest_candidate,strong,max 168-byte service entry; two synchronized slots
+0xffffffff999e4ed0,SblSendNoCopyback_wrapper,verified,passes copyback flag 0
+0xffffffff999e4ee0,SblSendMsg_core,verified,"validates 24..4096, copies to host buffer +0x1000, reads result at +0x1004"
+0xffffffff999e4fd0,SblSendWithCopyback_wrapper,verified,passes copyback flag 1
+0xffffffff999e4a20,SblSubmitGpuAddress,verified,host indexed register submission and status poll
+0xffffffff999e42b0,SblDriverInitialize_candidate,strong,allocates 1 MiB aligned buffer and maps into GPUVA
+0xffffffff999e41d0,SblRegisterCompletion,inferred,registers handler table callbacks
+0xffffffff999e45b0,SblDispatchCompletion,strong,13-entry completion dispatch
+0xffffffff999e47f0,SblEventHandler_candidate,inferred,event/IRQ callback candidate
+0xffffffff999e3480,SblGpuvmMap_candidate,inferred,GPU-visible mapping descriptor
+0xffffffff99884950,GpuIndexedRead,verified,"select index offset 0x22000, read data at 0x22004"
+0xffffffff998849e0,GpuIndexedWrite,verified,"select index offset 0x22000, write data at 0x22004"

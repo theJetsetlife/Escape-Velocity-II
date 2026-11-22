@@ -1,0 +1,133 @@
+{
+  "scope": "host-side Orbis kernel 9.00; per-dump runtime VAs only",
+  "image_sha256": "8fa5250621bf30bdb21730108f5b35c103bc898def60cf91417f0237cd3be0b3",
+  "symbols": [
+    {
+      "va": "0xffffffff999f9060",
+      "name": "SblServiceRequest_candidate",
+      "confidence": "strong",
+      "role": "max 168-byte service entry; two synchronized slots"
+    },
+    {
+      "va": "0xffffffff999e4ed0",
+      "name": "SblSendNoCopyback_wrapper",
+      "confidence": "verified",
+      "role": "passes copyback flag 0"
+    },
+    {
+      "va": "0xffffffff999e4ee0",
+      "name": "SblSendMsg_core",
+      "confidence": "verified",
+      "role": "validates 24..4096, copies to host buffer +0x1000, reads result at +0x1004"
+    },
+    {
+      "va": "0xffffffff999e4fd0",
+      "name": "SblSendWithCopyback_wrapper",
+      "confidence": "verified",
+      "role": "passes copyback flag 1"
+    },
+    {
+      "va": "0xffffffff999e4a20",
+      "name": "SblSubmitGpuAddress",
+      "confidence": "verified",
+      "role": "host indexed register submission and status poll"
+    },
+    {
+      "va": "0xffffffff999e42b0",
+      "name": "SblDriverInitialize_candidate",
+      "confidence": "strong",
+      "role": "allocates 1 MiB aligned buffer and maps into GPUVA"
+    },
+    {
+      "va": "0xffffffff999e41d0",
+      "name": "SblRegisterCompletion",
+      "confidence": "inferred",
+      "role": "registers handler table callbacks"
+    },
+    {
+      "va": "0xffffffff999e45b0",
+      "name": "SblDispatchCompletion",
+      "confidence": "strong",
+      "role": "13-entry completion dispatch"
+    },
+    {
+      "va": "0xffffffff999e47f0",
+      "name": "SblEventHandler_candidate",
+      "confidence": "inferred",
+      "role": "event/IRQ callback candidate"
+    },
+    {
+      "va": "0xffffffff999e3480",
+      "name": "SblGpuvmMap_candidate",
+      "confidence": "inferred",
+      "role": "GPU-visible mapping descriptor"
+    },
+    {
+      "va": "0xffffffff99884950",
+      "name": "GpuIndexedRead",
+      "confidence": "verified",
+      "role": "select index offset 0x22000, read data at 0x22004"
+    },
+    {
+      "va": "0xffffffff998849e0",
+      "name": "GpuIndexedWrite",
+      "confidence": "verified",
+      "role": "select index offset 0x22000, write data at 0x22004"
+    }
+  ],
+  "edges": [
+    {
+      "from": "0xffffffff999f9060",
+      "to": "0xffffffff999e4ed0",
+      "confidence": "verified",
+      "basis": "direct relative call at VA 0xffffffff999f9197, bytes e834bdfeff"
+    },
+    {
+      "from": "0xffffffff999e4ed0",
+      "to": "0xffffffff999e4ee0",
+      "confidence": "verified",
+      "basis": "direct jump at 0xffffffff999e4ed7"
+    },
+    {
+      "from": "0xffffffff999e4fd0",
+      "to": "0xffffffff999e4ee0",
+      "confidence": "verified",
+      "basis": "direct jump at 0xffffffff999e4fda"
+    },
+    {
+      "from": "0xffffffff999e4ee0",
+      "to": "0xffffffff999e4a20",
+      "confidence": "verified",
+      "basis": "direct call at 0xffffffff999e4f77"
+    },
+    {
+      "from": "0xffffffff999e42b0",
+      "to": "0xffffffff999e4a20",
+      "confidence": "verified",
+      "basis": "direct call at 0xffffffff999e44d1"
+    },
+    {
+      "from": "0xffffffff999e42b0",
+      "to": "0xffffffff999e3480",
+      "confidence": "inferred",
+      "basis": "init flow and mapped GPU address state"
+    },
+    {
+      "from": "0xffffffff999e4a20",
+      "to": "0xffffffff998849e0",
+      "confidence": "inferred",
+      "basis": "indexed register writes; wrapper/call target verification pending"
+    },
+    {
+      "from": "0xffffffff999e4a20",
+      "to": "0xffffffff99884950",
+      "confidence": "inferred",
+      "basis": "indexed status register reads; wrapper/call target verification pending"
+    }
+  ],
+  "notes": [
+    "Never translate runtime VA to physical MMIO directly",
+    "No internal SAMU code or keys recovered",
+    "EDK II driver not built or run"
+  ]
+}
