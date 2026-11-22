@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import stat
 import struct
 from pathlib import Path
 
@@ -20,7 +22,7 @@ ELF_HEADER = struct.Struct('<16sHHIQQQIHHHHHH')
 PROGRAM_HEADER = struct.Struct('<IIQQQQQQ')
 PT_LOAD = 1
 PF_X = 1
-MAX_FILE_SIZE = 1 << 30  # refuse unexpectedly huge, potentially sensitive input
+MAX_FILE_SIZE = 128 << 20  # 128 MiB cap: no unbounded reads, devices, or pipes
 
 # (virtual address, bytes from original instruction boundary)
 CHECKS = {
@@ -67,6 +69,8 @@ def parse_elf(data: bytes) -> dict:
         raise InvalidKernel('Unexpected ELF header or program header size')
     if phnum == 0 or phnum == 0xffff:
         raise InvalidKernel('Missing or extended ELF program headers')
+    if phoff < ehsize:
+        raise InvalidKernel('Program headers overlap the ELF header')
     if not _range_within(phoff, phentsize * phnum, len(data)):
         raise InvalidKernel('Program-header table extends outside file')
     segments = []
@@ -75,6 +79,8 @@ def parse_elf(data: bytes) -> dict:
          p_filesz, p_memsz, p_align) = PROGRAM_HEADER.unpack_from(data, phoff + i * phentsize)
         if p_filesz > p_memsz:
             raise InvalidKernel(f'Program header {i}: filesz exceeds memsz')
+        if p_align not in (0, 1) and p_align & (p_align - 1):
+            raise InvalidKernel(f'Program header {i}: invalid power-of-two alignment')
         if not _range_within(p_offset, p_filesz, len(data)):
             raise InvalidKernel(f'Program header {i}: file range outside input')
         if p_vaddr + p_memsz > (1 << 64):
@@ -88,6 +94,8 @@ def parse_elf(data: bytes) -> dict:
 
 def virtual_to_file(segments: list[dict], va: int, length: int) -> tuple[int, int]:
     """Resolve VA only through an executable, file-backed ELF PT_LOAD."""
+    if length <= 0 or va < 0 or va >= (1 << 64) or length > (1 << 64) - va:
+        raise InvalidKernel('Invalid virtual address extent')
     matches = [s for s in segments if
                s['type'] == PT_LOAD and s['flags'] & PF_X and
                va >= s['vaddr'] and
@@ -98,11 +106,31 @@ def virtual_to_file(segments: list[dict], va: int, length: int) -> tuple[int, in
     return s['offset'] + (va - s['vaddr']), s['index']
 
 
-def run(path: str | Path) -> dict:
+def load_kernel(path: str | Path) -> bytes:
+    """Read a regular, bounded file; reject symlinks, FIFOs and device nodes.
+
+    This intentionally never touches physical memory or a live device. The
+    caller's kernel image is never copied into this project's output tree.
+    """
     p = Path(path)
-    if p.stat().st_size > MAX_FILE_SIZE:
-        raise InvalidKernel('Input exceeds maximum supported verifier file size')
-    data = p.read_bytes()
+    if p.is_symlink():
+        raise InvalidKernel('Refusing a symbolic-link input')
+    with p.open('rb') as fh:
+        metadata = os.fstat(fh.fileno())
+        if not stat.S_ISREG(metadata.st_mode):
+            raise InvalidKernel('Input must be a regular file')
+        if metadata.st_size > MAX_FILE_SIZE:
+            raise InvalidKernel('Input exceeds maximum supported verifier file size')
+        data = fh.read(MAX_FILE_SIZE + 1)
+        if len(data) > MAX_FILE_SIZE:
+            raise InvalidKernel('Input grew beyond maximum supported size')
+        if len(data) != metadata.st_size:
+            raise InvalidKernel('Input size changed during acquisition')
+    return data
+
+
+def run(path: str | Path) -> dict:
+    data = load_kernel(path)
     elf = parse_elf(data)
     sha = hashlib.sha256(data).hexdigest()
     rx = [s for s in elf['segments'] if s['type'] == PT_LOAD and s['flags'] & PF_X]

@@ -1,34 +1,37 @@
-# PS4 9.00 SAMU host-driver reconstruction (offline-only)
+# SAMU 9.00 host-only clean-room analysis lab
 
-This directory intentionally lives under `tools/`, **not** `Ps4Pkg/` or `src/directboot/`. It does not build an EFI module and has no direct GPU/SAMU I/O. It models **Sony's x86 host-side SBL message path**, not SAMU firmware, private RAM, or key access.
+This is an **offline, synthetic-input test framework** for instruction-backed reconstruction of the **x86 host-side SBL/SAMU driver**. It is neither Sony source code nor executable SAMU firmware. Nothing in this module runs on the PS4, interfaces with hardware, obtains protected keys, or alters the working UEFI chain.
 
-## Test
+## All-synthetic tests
 
 ```sh
-make -C tools/samu-research test
-make -C tools/samu-research verify-kernel KDUMP='/path/to/kernel(1).bin'
+make -C tools/samu-research cleanroom
 ```
 
-Expected outputs: 9 model assertions pass, 19 pinned assembly checks pass, and the kernel SHA-256 matches the recorded firmware 9.00 capture. Running without the exact kernel file will fail; it never fetches kernel data.
+Requires Python 3, a C compiler and Clang/libFuzzer. Invokes a source provenance guard, Python tests, C model assertions, ASan/UBSan, a 5,000-case deterministic Python mutator, a 3,000-execution libFuzzer smoke run, and Clang static analysis. No network or proprietary kernel is needed. Outputs are confined to `.build/`.
 
-## Artifacts
+Optional isolated Docker instructions are in `docs/SAMU_900_CLEANROOM_LAB.md`. Docker image construction installs tools, but its test run uses no network and has no PS4 device mounts.
 
-- `sbl_host_model.c` — clean-room offline model with synthetic completion callback only
-- `verify_kernel_900.py` — compares pinned instructions against original kernel binary
-- `evidence.json` — recorded inspection results from user-supplied binary
-- `call_graph.json` — verified edges and inferred roles, with explicit confidence
+## Authorized local kernel verification
 
-**Do not link this model into native firmware.** Full GPUVM, cache coherency, interrupts, error recovery, and SAMU-specific authorization rules are not reconstructed.
+```sh
+make -C tools/samu-research verify-kernel KDUMP='/private/path/kernel(1).bin'
+```
 
-### Verifier integrity and REA follow-up
+Requires the exact **44,040,192-byte** image with SHA-256 `8fa5250621bf30bdb21730108f5b35c103bc898def60cf91417f0237cd3be0b3`. Verifies 6 ELF program headers, 19 pinned instruction sites, and 5 cited rel32 call/jump graph edges; the remaining three edges stay inferred. The verifier is bound to this image, not a general PS4 kernel decoder.
 
-The corrected verifier reads **all six** ELF program headers, validates the
-FreeBSD ELF64 x86-64 identity and exact dump hash, and permits pinned checks
-only in executable, file-backed PT_LOAD segments. The earlier script parsed
-zero segments due to incorrect ELF tuple indexes; its apparent 19/19 result
-must not be used as structural verification. `make test` includes nine ELF
-negative/positive regression tests and thirteen host-model assertions.
+**Never commit the kernel dump** or any console-specific memory/firmware to the repository. Private JSON metadata from local verification stays under `.build/`.
 
-`docs/SAMU_900_REA_WORKFLOW.md` describes how to run an independent local
-REA/Ghidra decompilation with Codex. REA was **not run** in the environment
-that produced this overlay.
+## Files
+
+- `sbl_host_model.c`: stand-alone mock message path and boundary checks
+- `synthetic_elf.py`, `fuzz_elf.py`: invented corpus and bounded deterministic mutation
+- `fuzz_sbl_host.c`: libFuzzer target with fixed synthetic backing buffers
+- `verify_kernel_900.py`, `verify_call_graph.py`: offline instruction / direct-edge evidence gates
+- `test_*.py`: synthetic unit and negative-security tests
+- `cleanroom_guard.py`: accidental-blob/secret and prohibited-primitive policy checks, **not a sandbox**
+- `call_graph.json`: claims with confidence labels and unresolved edges
+- `evidence.json`: source-traceable, non-proprietary verification metadata
+- `Dockerfile.cleanroom`, `.dockerignore`: restricted host-only test container configuration
+
+See `docs/SAMU_900_CLEANROOM_LAB.md`, `docs/SAMU_900_SECURITY_AUDIT.md`, and `docs/SAMU_900_REA_WORKFLOW.md`. An independent REA/Ghidra decompilation is still required before claiming complete function-level recovery.
