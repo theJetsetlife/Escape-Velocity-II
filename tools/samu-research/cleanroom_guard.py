@@ -61,7 +61,7 @@ def guard(paths: list[Path]) -> dict:
         for p in entries:
             if p.is_dir() and not p.is_symlink():
                 continue
-            if any(part in {'.build', '__pycache__', '.git'} for part in p.parts):
+            if any(part in {'.build', '.local-corpus', '__pycache__', '.git'} for part in p.parts):
                 continue
             checked.append(str(p))
             findings.extend(inspect_path(p))

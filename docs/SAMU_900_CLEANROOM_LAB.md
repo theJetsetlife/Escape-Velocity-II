@@ -67,3 +67,10 @@ No PS4 volumes are mounted in the container. The image runs as UID 65532 and def
 ## Threat model / excluded claims
 
 The verifier handles untrusted local *files*. The C model handles hostile synthetic *request lengths* and callback behavior. The source guard is a policy check, **not** a sandbox: it cannot prevent malicious toolchain execution or replace Docker/VM isolation. Branches marked `inferred` are hypotheses; ABI values and communication semantics still require independent REA/Ghidra validation. CI test success never implies SAMU exploitation or protected-key visibility.
+
+
+## Real-firmware corpus (local analysis)
+
+This lab also supports **actual proprietary firmware binaries supplied by the console owner**. The real-corpus path is opt-in and independent from synthetic CI fuzz tests. Import the user's 9.00 `kernel(1).bin` and 32 MiB `sflash0.bin` with `make corpus-init KDUMP=... NOR=...`. The extractor materializes and verifies all four SAMU/CoreOS partitions at their absolute NOR offsets. Run `make test-real` to verify known SHA-256 hashes, segment-aware kernel instruction bytes, and the direct call-graph checks. This tests genuine supplied code/data rather than synthetic firmware. No live device access occurs.
+
+Use `.local-corpus/` in the source checkout, or a private local ZIP containing all six real images and the manifest. The GitHub branch and synthetic CI remain code-only.
