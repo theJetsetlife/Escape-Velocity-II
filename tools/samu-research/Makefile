@@ -3,9 +3,11 @@ CC ?= cc
 CLANG ?= clang
 PYTHON ?= python3
 BUILD := .build
+CORPUS ?= .local-corpus
+# User-supplied 9.00 kernel and NOR are local inputs, not a network download.
 CFLAGS ?= -O2 -g -std=c11 -Wall -Wextra -Werror -pedantic
 SAN_FLAGS := -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined
-.PHONY: test cleanroom guard fuzz sanitizers static-analysis verify-kernel clean
+.PHONY: test cleanroom guard fuzz sanitizers static-analysis verify-kernel corpus-init test-real clean
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -43,6 +45,15 @@ verify-kernel:
 	mkdir -p $(BUILD)
 	$(PYTHON) verify_kernel_900.py "$(KDUMP)" --out $(BUILD)/local_kernel_verification.json
 	$(PYTHON) verify_call_graph.py "$(KDUMP)" --out $(BUILD)/local_call_graph_verification.json
+
+corpus-init:
+	@test -n "$(KDUMP)" && test -n "$(NOR)" || (echo 'Usage: make corpus-init KDUMP=/path/kernel.bin NOR=/path/sflash0.bin' >&2; exit 2)
+	$(PYTHON) real_corpus.py init --kernel "$(KDUMP)" --nor "$(NOR)" --corpus "$(CORPUS)"
+
+test-real:
+	$(PYTHON) real_corpus.py verify --corpus "$(CORPUS)"
+	$(PYTHON) verify_kernel_900.py "$(CORPUS)/kernel_900.bin" --out "$(CORPUS)/kernel_verification.json"
+	$(PYTHON) verify_call_graph.py "$(CORPUS)/kernel_900.bin" --out "$(CORPUS)/call_graph_verification.json"
 
 clean:
 	rm -rf $(BUILD)
