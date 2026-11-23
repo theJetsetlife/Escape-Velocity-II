@@ -1,0 +1,164 @@
+{
+  "schema": "evii.crypto-family-catalog.v1",
+  "as_of": "2026-11-23",
+  "scope": "public, non-secret PS4 cryptographic family metadata",
+  "secret_values_included": false,
+  "console_identifiers_included": false,
+  "families": [
+    {
+      "id": "samu-master",
+      "domain": "SAMU",
+      "names": [
+        "KCA",
+        "KGA",
+        "KRA"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/KeySlots"
+    },
+    {
+      "id": "samu-boot",
+      "domain": "SAMU",
+      "names": [
+        "Sflash XTS",
+        "IPL over-encryption",
+        "IPL metadata",
+        "IPL body"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/KeySlots"
+    },
+    {
+      "id": "samu-portability",
+      "domain": "SAMU/SBL",
+      "names": [
+        "pfsSKKey",
+        "sealedkey",
+        "portability"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/Keys"
+    },
+    {
+      "id": "npdrm-pfs",
+      "domain": "Content protection",
+      "names": [
+        "RIF HMAC",
+        "PFS content keys"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/Keys"
+    },
+    {
+      "id": "eap",
+      "domain": "EAP southbridge",
+      "names": [
+        "EAP KBL",
+        "EAP kernel",
+        "EAP HDD"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://github.com/Al-Azif/ps4-cfw-toolkit"
+    },
+    {
+      "id": "emc",
+      "domain": "EMC",
+      "names": [
+        "EMC IPL encryption and integrity"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://github.com/Al-Azif/ps4-cfw-toolkit"
+    },
+    {
+      "id": "syscon",
+      "domain": "Syscon",
+      "names": [
+        "Syscon Patch",
+        "Syscon Full firmware"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://github.com/Al-Azif/ps4-cfw-toolkit"
+    },
+    {
+      "id": "storage",
+      "domain": "Storage",
+      "names": [
+        "SAMU HDD",
+        "EAP HDD",
+        "USB extended storage"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/Keys"
+    },
+    {
+      "id": "firmware-signing",
+      "domain": "Signing and packages",
+      "names": [
+        "SAMU IPL signing",
+        "SELF signing",
+        "PKG metadata RSA",
+        "EKPFS"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://github.com/Al-Azif/ps4-cfw-toolkit"
+    },
+    {
+      "id": "kernel",
+      "domain": "Kernel and services",
+      "names": [
+        "Crashdump",
+        "Keystone",
+        "system-service cryptography"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/Keys"
+    },
+    {
+      "id": "smu",
+      "domain": "AMD SMU",
+      "names": [
+        "SMU firmware HMAC"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/Keys"
+    },
+    {
+      "id": "ds4",
+      "domain": "DualShock 4",
+      "names": [
+        "Jedi master",
+        "bootloader",
+        "application"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/Keys"
+    },
+    {
+      "id": "psvr",
+      "domain": "PSVR",
+      "names": [
+        "RootFS",
+        "firmware",
+        "userdata",
+        "trusted storage",
+        "cache",
+        "factory settings"
+      ],
+      "evidence": "DOCUMENTED_NAME",
+      "exportability": "UNKNOWN_EXPORTABILITY",
+      "source": "https://www.psdevwiki.com/ps4/Keys"
+    }
+  ]
+}
