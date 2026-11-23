@@ -7,7 +7,7 @@ CORPUS ?= .local-corpus
 # User-supplied 9.00 kernel and NOR are local inputs, not a network download.
 CFLAGS ?= -O2 -g -std=c11 -Wall -Wextra -Werror -pedantic
 SAN_FLAGS := -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined
-.PHONY: test cleanroom guard fuzz sanitizers static-analysis verify-kernel corpus-init test-real clean
+.PHONY: test topology cleanroom guard fuzz sanitizers static-analysis verify-kernel corpus-init test-real clean
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -21,7 +21,11 @@ $(BUILD)/sbl_offline_san: sbl_host_model.c | $(BUILD)
 $(BUILD)/sbl_fuzzer: fuzz_sbl_host.c sbl_host_model.c | $(BUILD)
 	$(CLANG) $(CFLAGS) -Wno-unused-function $(SAN_FLAGS) -fsanitize=fuzzer $< -o $@
 
+topology:
+	$(PYTHON) verify_topology.py
+
 test: $(BUILD)/sbl_offline_test
+	$(PYTHON) verify_topology.py
 	./$(BUILD)/sbl_offline_test
 	$(PYTHON) -m unittest discover -p 'test_*.py' -v
 

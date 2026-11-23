@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "board": "SAA-001 / Liverpool / Aeolia",
+  "source_kernel_sha256": "8fa5250621bf30bdb21730108f5b35c103bc898def60cf91417f0237cd3be0b3",
+  "routes": [
+    {
+      "id": "host_sbl",
+      "evidence_level": "verified_host_instructions_only",
+      "transport": "APU/GPU-associated indexed register interface and mapped host buffer",
+      "nodes": [
+        "x86_orbis_sbl",
+        "sbl_driver",
+        "gpu_apu_indexed_interface",
+        "samu_security_domain"
+      ],
+      "pinned_instruction_checks": {
+        "service_size_max": "81fea9000000",
+        "sender_min_24": "83f917",
+        "sender_max_4096": "81fe00100000",
+        "init_allocation_1MiB": "bf00001000",
+        "init_alignment": "a9ff3f0000",
+        "message_copy_offset": "4801df",
+        "indexed_selector_offset": "ba00200200",
+        "indexed_data_offset": "ba04200200",
+        "submit_index_34": "bf34000000",
+        "submit_index_33": "bf33000000",
+        "submit_start_index_32": "bf32000000",
+        "submit_status_index_4a": "bf4a000000"
+      },
+      "verified_edges": [
+        [
+          "0xffffffff999f9060",
+          "0xffffffff999e4ed0"
+        ],
+        [
+          "0xffffffff999e4ed0",
+          "0xffffffff999e4ee0"
+        ],
+        [
+          "0xffffffff999e4ee0",
+          "0xffffffff999e4a20"
+        ]
+      ],
+      "not_proven": [
+        "hardware transport still operational under EDK II",
+        "GPUVM/DMA mapping continuity",
+        "active SAMU response",
+        "SAMU internal code or key access"
+      ]
+    },
+    {
+      "id": "snvs_external",
+      "evidence_level": "published_external_research_not_user_bus_capture",
+      "transport": "SAMU-protected secure NVS; APU/Aeolia ICC-related communication to Syscon",
+      "nodes": [
+        "samu_protected_storage",
+        "apu_auxiliary_services",
+        "aeolia_icc",
+        "syscon_secure_nvs"
+      ],
+      "references": [
+        "https://fail0verflow.com/blog/2018/ps4-syscon/",
+        "https://fail0verflow.com/blog/2018/ps4-aeolia/"
+      ],
+      "not_proven": [
+        "SNVS packets observed on the user's PS4",
+        "EAP/EMC transports normal SBL service requests",
+        "changes in external firmware override SAMU authorization"
+      ]
+    }
+  ],
+  "guardrails": [
+    "Do not infer a UEFI physical BAR from host-side +0x22000/+0x22004 offsets",
+    "Do not infer SAMU internal memory from PCI or NOR imaging",
+    "Treat EAP/EMC/Syscon as a separate external controller path, not the default host SBL request transport"
+  ]
+}
