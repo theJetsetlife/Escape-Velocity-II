@@ -31,7 +31,7 @@ From an Escape Velocity II checkout:
 ```bash
 make -C src/diag PC_IP=192.168.1.10 PC_PORT=9031
 file src/diag/diag.bin
-sha256sum -c src/diag/diag.bin.sha256
+(cd src/diag && sha256sum -c diag.bin.sha256)
 ```
 
 Replace `PC_IP` with the address of your actual PC receiver. The `file` utility cannot infer architecture or entry point from a raw binary; the `.elf` intermediate and linker layout are the authoritative structural evidence. A successful build does **not** prove hardware operation.
