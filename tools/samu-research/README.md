@@ -34,6 +34,10 @@ Requires the exact **44,040,192-byte** image with SHA-256 `8fa5250621bf30bdb2173
 
 The original kernel and firmware samples are now first-class **local test inputs**. Keep the corpus separate from the public source repository, while retaining it in the local testing archive. Reports remain local under `.build/` or `.local-corpus/`.
 
+## SAA-001 transport separation (new)
+
+`transport_topology.json` and `verify_topology.py` keep the **host x86 SBL → GPU/APU interface → SAMU** route separate from the published **SAMU-protected SNVS ↔ Aeolia ICC ↔ Syscon** route. Run `make -C tools/samu-research topology`; its metadata checks are included in the Python regression suite. This is offline analysis, not a live transport or firmware patch. See `docs/SAMU_SAA001_TWO_TRANSPORTS.md`.
+
 ## Files
 
 - `real_corpus.py`: import and verify the actual six binary captures and their NOR offsets
